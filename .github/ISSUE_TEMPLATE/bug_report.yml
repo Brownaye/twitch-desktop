@@ -1,0 +1,33 @@
+name: Bug report
+description: Something's broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: e.g. Windows 11, Ubuntu 24.04 (AppImage)
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        `app.log` from `%APPDATA%\Twitch Desktop` on Windows or `~/.config/Twitch Desktop` on Linux.
+        Tokens and keys are stripped out, but it does list the channels you watch.
+      render: text

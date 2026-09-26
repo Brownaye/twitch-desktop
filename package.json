@@ -1,0 +1,143 @@
+{
+  "name": "twitch-desktop",
+  "productName": "Twitch Desktop",
+  "version": "1.0.0",
+  "description": "Unofficial desktop app for watching the Twitch channels you follow, with a docked player and chat.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "icons": "node scripts/make-icon.js",
+    "check": "node scripts/check-syntax.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "release": "electron-builder --publish always"
+  },
+  "author": "Brownaye",
+  "license": "MIT",
+  "homepage": "https://github.com/Brownaye/twitch-desktop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Brownaye/twitch-desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Brownaye/twitch-desktop/issues"
+  },
+  "keywords": [
+    "twitch",
+    "electron",
+    "desktop",
+    "streaming",
+    "vod"
+  ],
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "io.github.brownaye.twitchdesktop",
+    "productName": "Twitch Desktop",
+    "copyright": "Copyright (c) 2026 Brownaye",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!**/*.log",
+      "!**/.env*",
+      "!data/**",
+      "!dist/**",
+      "!out/**",
+      "!docs/**",
+      "!scripts/**",
+      "!.github/**"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Twitch-Desktop-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Twitch Desktop",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "uninstallDisplayName": "Twitch Desktop",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Twitch-Desktop-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Twitch-Desktop-${version}-portable.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Video",
+      "synopsis": "Unofficial desktop Twitch app",
+      "maintainer": "Brownaye <Brownaye@users.noreply.github.com>",
+      "desktop": {
+        "entry": {
+          "Name": "Twitch Desktop",
+          "Comment": "Unofficial desktop Twitch app",
+          "Categories": "AudioVideo;Video;Network;"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "Twitch-Desktop-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "twitch-desktop_${version}_${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Brownaye",
+        "repo": "twitch-desktop",
+        "releaseType": "draft"
+      }
+    ]
+  },
+  "allowScripts": {
+    "electron-winstaller": false
+  }
+}

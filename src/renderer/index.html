@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * data:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>Twitch Desktop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="titlebar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <span class="brand-name">Twitch Desktop</span>
+        <span id="live-pill" class="pill live" hidden>0 live</span>
+      </div>
+      <div class="titlebar-actions">
+        <button id="btn-power" class="icon-btn" title="Pause checking (stops all requests to Twitch)" data-icon="power"></button>
+        <button id="btn-refresh" class="icon-btn" title="Check channels now" data-icon="refresh"></button>
+        <button id="btn-pin" class="icon-btn" title="Always on top" data-icon="pin"></button>
+        <button id="btn-settings" class="icon-btn" title="Settings" data-icon="gear"></button>
+        <button id="btn-min" class="icon-btn" title="Minimise" data-icon="minus"></button>
+        <button id="btn-close" class="icon-btn danger" title="Hide to tray" data-icon="x"></button>
+      </div>
+    </header>
+
+    <div id="paused-bar" class="paused-bar" hidden role="status">
+      <span class="paused-dot" aria-hidden="true"></span>
+      <span>Paused. Nothing is checked or sent to Twitch.</span>
+      <button id="paused-resume" class="btn tiny">Resume</button>
+    </div>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-tab="live">Live <span class="tab-count" id="count-live"></span></button>
+      <button class="tab" role="tab" data-tab="continue">Continue <span class="tab-count" id="count-continue"></span></button>
+      <button class="tab" role="tab" data-tab="vods">VODs</button>
+      <button class="tab" role="tab" data-tab="schedule">Schedule</button>
+      <button class="tab" role="tab" data-tab="channels">Channels</button>
+    </nav>
+
+    <main class="view" id="view"></main>
+
+    <!-- Settings (a view of its own, opened from the gear) -->
+    <section class="view settings" id="view-settings" hidden aria-label="Settings">
+      <div class="toolbar"><h2>Settings</h2><button id="settings-back" class="btn ghost tiny">Back</button></div>
+
+      <div class="panel">
+        <h3>Twitch account</h3>
+        <div id="account"></div>
+        <label class="setting"><input type="checkbox" data-setting="syncFollows" /> Add channels I follow on Twitch automatically</label>
+      </div>
+
+      <div class="panel">
+        <h3>Notifications</h3>
+        <label class="setting"><input type="checkbox" data-setting="toasts" /> Notify me when a favourite (bell) goes live</label>
+        <label class="setting"><input type="checkbox" data-setting="scheduleReminders" /> Remind me before favourites' scheduled streams (and any I ring the bell on in Schedule)</label>
+        <label class="setting col">Minutes before a scheduled stream<input type="number" min="1" max="120" data-setting-num="remindMinutes" /></label>
+        <label class="setting col">Tell me when anyone I follow starts playing these games (comma separated; part of the name is enough)<input type="text" data-setting-text="gameAlerts" placeholder="e.g. Minecraft, Elden Ring" /></label>
+      </div>
+
+      <div class="panel">
+        <h3>Phone alerts (ntfy, optional)</h3>
+        <p class="muted small">Alerts can also go to your phone through <a href="https://ntfy.sh">ntfy</a>: install the ntfy app, subscribe to a topic name only you know, and enter the same name here. Leave it empty to keep alerts on this computer only. Topics on ntfy.sh are public to anyone who guesses the name, so make it long and random.</p>
+        <label class="setting col">Topic<input type="text" data-setting-text="ntfyTopic" placeholder="e.g. td-7f3k9q2m-alerts" /></label>
+        <label class="setting col">Server<input type="text" data-setting-text="ntfyServer" placeholder="https://ntfy.sh" /></label>
+        <div class="row"><button class="btn" id="ntfy-test">Send a test</button></div>
+      </div>
+
+      <div class="panel">
+        <h3>Player</h3>
+        <label class="setting"><input type="checkbox" data-setting="skipMuted" /> Skip muted parts of VODs</label>
+        <label class="setting"><input type="checkbox" data-setting="backgroundLow" /> Streams kept loaded in the background play at the lowest quality</label>
+        <label class="setting"><input type="checkbox" data-setting="mediaKeys" /> Keyboard media keys control the player while it is open</label>
+        <label class="setting"><input type="checkbox" data-setting="followRaids" /> Follow raids (when signed in): when the channel raids, go with it after 8 seconds</label>
+      </div>
+
+      <div class="panel">
+        <h3>AI chat recap (optional)</h3>
+        <p class="muted small">A "What's going on?" button in live chat that sums up the last few minutes of chat in one line, using an AI model on OpenRouter. Chat is only sent when you press it. Get a key at <a href="https://openrouter.ai/keys">openrouter.ai/keys</a>.</p>
+        <label class="setting"><input type="checkbox" data-setting="chatRecap" /> Show the "What's going on?" chat recap</label>
+        <label class="setting col">OpenRouter API key
+          <span class="input-with-btn">
+            <input type="password" id="ai-key" data-setting-text="openrouterKey" placeholder="sk-or-..." autocomplete="off" spellcheck="false" />
+            <button type="button" class="btn tiny" id="ai-key-show" aria-label="Show API key">Show</button>
+          </span>
+        </label>
+        <label class="setting col">Model<input type="text" id="ai-model" data-setting-text="openrouterModel" spellcheck="false" /></label>
+        <p id="ai-hint" class="small warn-text" hidden>The recap is on but there is no API key, so the button will not work.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Window</h3>
+        <label class="setting"><input type="checkbox" data-setting="alwaysOnTop" /> Always on top</label>
+        <label class="setting"><input type="checkbox" data-setting="closeToTray" /> Close button hides to tray (checking carries on in the background)</label>
+        <label class="setting"><input type="checkbox" data-setting="startMinimized" /> Start hidden in the tray</label>
+        <label class="setting col">Check channels every (seconds, at least 20)<input type="number" min="20" data-setting-num="pollSeconds" /></label>
+      </div>
+
+      <div class="panel">
+        <h3>Activity log</h3>
+        <div id="log" class="log" tabindex="0" aria-label="Activity log"></div>
+      </div>
+
+      <div class="panel">
+        <h3>About</h3>
+        <p><strong>Twitch Desktop</strong> <span id="about-version" class="muted small"></span></p>
+        <p class="muted small">Settings, channels and watch history are kept in the data folder on this computer.</p>
+        <div class="row wrap">
+          <button id="btn-open-data" class="btn">Open data folder</button>
+          <a class="btn ghost" href="https://github.com/Brownaye/twitch-desktop">Project on GitHub</a>
+          <a class="btn ghost" href="https://github.com/Brownaye/twitch-desktop/issues">Report a problem</a>
+        </div>
+        <p class="muted small about-note">Not affiliated with or endorsed by Twitch.</p>
+      </div>
+    </section>
+
+    <div id="snack" class="snack" hidden role="status" aria-live="polite"></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+:root {
+  --bg: #0f1115;
+  --bg-2: #151821;
+  --bg-3: #1c2030;
+  --line: #262b3a;
+  --text: #e6e8ef;
+  --muted: #8b91a5;
+  --twitch: #9146ff;
+  --live: #e91916;
+  --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --header: 44px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; user-select: none; }
+
+.shell { position: absolute; inset: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #000; }
+body.enter .shell { animation: slide-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.05) both; }
+body.leave .shell { animation: slide-out 0.22s ease-in both; }
+@keyframes slide-in { from { transform: translateX(60px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slide-out { to { transform: translateX(50px) scale(0.97); opacity: 0; } }
+
+header { flex: none; height: var(--header); display: flex; align-items: center; gap: 9px; padding: 0 6px 0 10px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+.av { flex: none; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--bg-3); color: var(--twitch); font-weight: 700; }
+.av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.h-text { flex: 1; min-width: 0; }
+.h-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.h-name { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.h-meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-title { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.badge { flex: none; padding: 1px 5px; border-radius: 4px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.05em; color: #fff; }
+.badge.live { background: var(--live); animation: glow 1.8s ease-in-out infinite; }
+.badge.vod { background: var(--twitch); }
+@keyframes glow { 50% { box-shadow: 0 0 10px rgba(233, 25, 22, 0.7); } }
+.hb { flex: none; width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.hb svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hb:hover { background: var(--bg-3); color: var(--text); }
+.hb.close:hover { background: #e81123; color: #fff; }
+/* Chat toggle: quiet when chat is showing, a clear call to action when it is hidden. */
+.pill { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.pill svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pill:hover { color: var(--text); background: var(--bg-3); }
+.pill.on { color: #bf9bff; border-color: rgba(145, 70, 255, 0.45); }
+.pill.off { color: #fff; background: var(--twitch); border-color: var(--twitch); animation: nudge 2.4s ease-in-out 2; }
+@keyframes nudge { 0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(145, 70, 255, 0); } 35% { box-shadow: 0 0 0 5px rgba(145, 70, 255, 0.35); } }
+.pill[hidden] { display: none; }
+
+/* Size menu */
+.sizes-wrap { position: relative; flex: none; }
+.sizes { position: absolute; top: 36px; right: 0; z-index: 20; width: 210px; padding: 6px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); animation: pop-menu 0.16s ease-out both; transform-origin: top right; }
+.sizes[hidden] { display: none; }
+@keyframes pop-menu { from { opacity: 0; transform: scale(0.94) translateY(-4px); } }
+.sizes-title { padding: 3px 6px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.sizes button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 6px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; }
+.sizes button:hover { background: var(--bg-3); }
+.sizes button.on { background: rgba(145, 70, 255, 0.18); }
+.sizes .pv { flex: none; width: 40px; height: 22px; border-radius: 4px; border: 1px solid var(--line); display: flex; justify-content: flex-end; align-items: flex-start; padding: 2px; }
+.sizes .pv i { display: block; height: 58%; border-radius: 2px; background: var(--muted); }
+.sizes button.on .pv i { background: var(--twitch); }
+.sizes .nm { flex: 1; }
+.sizes .kb { font-size: 10.5px; color: var(--muted); padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; }
+
+.stage { position: relative; flex: 1; overflow: hidden; background: #000; perspective: 1200px; }
+webview { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; clip-path: circle(0% at 50% 50%); }
+.stage.revealing webview.active { transition: clip-path 0.7s cubic-bezier(0.65, 0, 0.35, 1); clip-path: circle(75% at 50% 50%); }
+.stage.quick.revealing webview.active { transition-duration: 0.35s; }
+.stage.revealed webview.active { clip-path: none; transition: none; }
+/* Streams you switched away from keep playing (muted) out of sight, so switching back is instant. */
+webview.warm { z-index: 0; clip-path: none; opacity: 0; pointer-events: none; }
+
+/* The incoming stream's card, under the video until it is revealed. */
+.card { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; overflow: hidden; background: #07080b; }
+.card-bg { position: absolute; inset: -30px; background: center / cover no-repeat; filter: blur(22px) brightness(0.6) saturate(1.3); transform: scale(1.1); }
+.card.in .card-bg { animation: drift 8s ease-out both; }
+@keyframes drift { from { transform: scale(1.25); } to { transform: scale(1.1); } }
+.card-body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 80%; text-align: center; }
+.card.in .card-body { animation: card-in 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.1) both; }
+@keyframes card-in { from { transform: translateX(80px) rotateY(-18deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.av.big { width: 64px; height: 64px; font-size: 26px; box-shadow: 0 0 0 3px rgba(145, 70, 255, 0.8), 0 8px 30px rgba(0, 0, 0, 0.6); }
+.card.in .av.big { animation: pop 0.6s 0.1s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes pop { from { transform: scale(0.4); } to { transform: none; } }
+.c-name { margin-top: 4px; font-size: 18px; font-weight: 800; }
+.c-title { font-size: 13px; color: #cfd3e0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-meta { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); }
+.loader { margin-top: 10px; width: 140px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.loader span { display: block; width: 40%; height: 100%; border-radius: 3px; background: var(--twitch); animation: load 1.1s ease-in-out infinite; }
+@keyframes load { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+
+/* The outgoing frame flies off to the left. */
+.snap { position: absolute; inset: 0; z-index: 3; display: none; background: center / cover no-repeat #000; pointer-events: none; }
+.snap.show { display: block; }
+.snap.out { animation: snap-out 0.6s cubic-bezier(0.55, 0, 0.3, 1) both; }
+@keyframes snap-out {
+  0% { transform: none; opacity: 1; filter: none; border-radius: 0; }
+  35% { transform: scale(0.86); border-radius: 14px; filter: brightness(0.8); }
+  100% { transform: translateX(-75%) scale(0.7) rotateY(22deg); opacity: 0; filter: brightness(0.5) blur(3px); border-radius: 14px; }
+}
+
+/* The header moves the player (docked: the app comes along with it). */
+body.detached header { -webkit-app-region: drag; }
+body.docked header { cursor: grab; }
+body.docked.dragging header { cursor: grabbing; }
+header button, .sizes { -webkit-app-region: no-drag; }
+.hb.on { color: #bf9bff; background: rgba(145, 70, 255, 0.18); }
+.i-dock, body.detached .i-detach, body.pip .i-detach { display: none; }
+body.detached .i-dock, body.pip .i-dock { display: block; }
+
+/* PiP: just the video; a slim header slides over the top while the pointer is on the window. */
+body.pip header { position: absolute; top: 0; left: 0; right: 0; z-index: 10; height: 36px; gap: 7px; padding: 0 4px 0 8px; border-bottom: 0; background: linear-gradient(rgba(10, 11, 15, 0.94), rgba(10, 11, 15, 0.6)); opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity 0.16s, transform 0.16s; }
+body.pip.hover header { opacity: 1; transform: none; pointer-events: auto; -webkit-app-region: drag; }
+body.pip.hover header button { -webkit-app-region: no-drag; }
+body.pip .av { width: 22px; height: 22px; }
+body.pip .h-title, body.pip .h-meta, body.pip #b-chat, body.pip .sizes-wrap, body.pip #b-ext, body.pip #b-full { display: none; }
+body.pip .hb { width: 26px; height: 26px; }
+
+/* Tab on the edge facing the app: slides the app away, and back. */
+.edge { position: absolute; z-index: 6; top: 50%; right: 0; width: 20px; height: 84px; margin-top: -42px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.14); border-right: 0; border-radius: 10px 0 0 10px; background: rgba(21, 24, 33, 0.9); color: #e6e8ef; display: grid; place-items: center; cursor: pointer; opacity: 0.8; box-shadow: -2px 0 12px rgba(0, 0, 0, 0.5); transition: width 0.18s ease, opacity 0.18s, background 0.18s, color 0.18s; }
+.edge:hover { width: 26px; opacity: 1; background: var(--twitch); border-color: var(--twitch); color: #fff; }
+.edge svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.edge.collapsed { opacity: 1; background: var(--twitch); border-color: var(--twitch); color: #fff; box-shadow: 0 0 14px rgba(145, 70, 255, 0.6); }
+.edge.left { right: auto; left: 0; border-right: 1px solid rgba(255, 255, 255, 0.14); border-left: 0; border-radius: 0 10px 10px 0; }
+body:not(.docked) .edge { display: none; }
+
+/* "From start" (live only) and the little notice it uses when there is no recording. */
+#b-start[hidden] { display: none; }
+#b-start:disabled { opacity: 0.5; cursor: progress; }
+body.pip #b-start { display: none; }
+.ptoast { position: absolute; z-index: 8; left: 50%; top: 14px; transform: translateX(-50%); max-width: 80%; padding: 8px 14px; border-radius: 9px; background: rgba(21, 24, 33, 0.94); border: 1px solid var(--line); color: var(--text); font-size: 12.5px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); animation: pop-menu 0.16s ease-out both; }
+.ptoast[hidden] { display: none; }
+
+/* Skipping a muted part of a VOD: fast-forward transition over the video (from the Skip Muted extension). */
+.skm-fx { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #fff; text-align: center; animation: skm-fade 2000ms linear forwards; }
+.skm-fx::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.7) 100%); }
+.skm-streak { position: absolute; left: -45%; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent); box-shadow: 0 0 8px rgba(145, 71, 255, 0.9); animation: skm-streak 700ms linear infinite; }
+.skm-icon { position: relative; width: 96px; height: 72px; filter: drop-shadow(0 0 18px rgba(145, 71, 255, 0.9)); animation: skm-pulse 320ms ease-in-out infinite; }
+.skm-icon svg { width: 100%; height: 100%; }
+.skm-time { position: relative; font-size: 44px; font-weight: 800; letter-spacing: 1px; font-variant-numeric: tabular-nums; text-shadow: -2px 0 rgba(0, 255, 255, 0.75), 2px 0 rgba(255, 0, 128, 0.75), 0 0 20px rgba(0, 0, 0, 0.8); }
+.skm-label { position: relative; font-size: 15px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; opacity: 0.85; text-shadow: 0 0 12px rgba(0, 0, 0, 0.9); }
+webview.skm-blur { filter: blur(6px) saturate(1.4) brightness(0.85); transform: scaleX(1.06); transition: filter 250ms ease, transform 250ms ease; }
+@keyframes skm-fade { 0% { opacity: 0; } 6% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes skm-streak { from { transform: translateX(0); } to { transform: translateX(420%); } }
+@keyframes skm-pulse { 0%, 100% { transform: scale(1) skewX(-6deg); } 50% { transform: scale(1.18) skewX(-14deg); } }
+
+/* Sleep timer, audio mode, multi-view buttons */
+.hb.on { color: #bf9bff; background: rgba(145, 70, 255, 0.18); }
+.menu-wrap { position: relative; flex: none; }
+#b-sleep { width: auto; min-width: 30px; padding: 0 6px; display: inline-flex; align-items: center; gap: 4px; }
+.sleep-left { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sleep-left:empty { display: none; }
+.menu { width: 170px; }
+.menu button { padding: 7px 8px; }
+body.pip #b-sleep, body.pip #b-audio, body.pip #b-grid, body.pip #b-min { display: none; }
+
+/* Audio mode: the picture is hidden behind a card (the stream plays at its lowest quality underneath). */
+.audio-card { position: absolute; inset: 0; z-index: 4; cursor: pointer; display: grid; place-items: center; overflow: hidden; background: #07080b; }
+.audio-card[hidden] { display: none; }
+.audio-bg { position: absolute; inset: -30px; background: center / cover no-repeat; filter: blur(26px) brightness(0.45) saturate(1.3); transform: scale(1.1); }
+.audio-body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.a-name { font-size: 18px; font-weight: 800; }
+.a-bars { display: flex; align-items: flex-end; gap: 4px; height: 26px; }
+.a-bars i { width: 5px; height: 30%; border-radius: 3px; background: #bf9bff; animation: abar 1.1s ease-in-out infinite; }
+.a-bars i:nth-child(2) { animation-delay: -0.25s; } .a-bars i:nth-child(3) { animation-delay: -0.5s; } .a-bars i:nth-child(4) { animation-delay: -0.75s; } .a-bars i:nth-child(5) { animation-delay: -0.95s; }
+@keyframes abar { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+.a-note { font-size: 11.5px; color: #a9aec0; max-width: 70%; }
+body.audio webview.active { opacity: 0; }
+
+/* Sleep timer fading out */
+.sleep-fade { position: absolute; z-index: 8; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(21, 24, 33, 0.92); border: 1px solid var(--line); font-size: 12.5px; }
+.sleep-fade[hidden] { display: none; }
+.sleep-fade svg { width: 15px; height: 15px; fill: none; stroke: #bf9bff; stroke-width: 2; }
+
+/* Multi-view: tiles in a 2x2 grid; the one with sound is ringed */
+body.grid webview.tile { clip-path: none !important; opacity: 1 !important; z-index: 2; pointer-events: none; }
+body.grid webview.tile.tile-on { pointer-events: auto; }
+body.grid .card { display: none; }
+.tile-hit { position: absolute; z-index: 5; border: 0; margin: 0; padding: 0; background: transparent; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.tile-hit:hover { box-shadow: inset 0 0 0 2px rgba(145, 70, 255, 0.8); background: rgba(145, 70, 255, 0.06); }
+.tile-hit.on { pointer-events: none; box-shadow: inset 0 0 0 2px #9146ff; }
+.tile-name { position: absolute; left: 6px; top: 6px; padding: 2px 7px; border-radius: 5px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 11px; font-weight: 700; }
+
+/* Chapters menu */
+.menu.chapters { width: 250px; max-height: 60vh; overflow-y: auto; }
+.ch-art { width: 20px; height: 27px; border-radius: 3px; object-fit: cover; flex: none; background: var(--bg-3); }
+body.pip #b-chapters { display: none; }
+
+/* A raid: where the channel went, a countdown bar, Go now / Stay */
+.raid { position: absolute; z-index: 9; left: 50%; top: 16px; transform: translateX(-50%); width: min(380px, 86%); padding: 12px 14px; border-radius: 12px; background: rgba(21, 24, 33, 0.96); border: 1px solid rgba(145, 70, 255, 0.6); box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6), 0 0 22px rgba(145, 70, 255, 0.35); animation: pop-menu 0.2s ease-out both; }
+.raid[hidden] { display: none; }
+.raid-text { font-size: 13px; }
+.raid-text strong { color: #d9c6ff; }
+.raid-bar { margin-top: 9px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.raid-bar span { display: block; height: 100%; width: 0; background: #9146ff; }
+.raid-acts { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+.raid-acts button { border: 0; border-radius: 7px; padding: 5px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.raid-go { background: #9146ff; color: #fff; }
+.raid-stay { background: var(--bg-3); color: var(--text); }
