@@ -19,7 +19,7 @@ function init() {
   started = true;
 
   const { autoUpdater } = require('electron-updater');
-  autoUpdater.logger = { info: (m) => log.info('update', m), warn: (m) => log.warn('update', m), error: (m) => log.warn('update', short(m)), debug: () => {} };
+  autoUpdater.logger = { info: (m) => log.info('update', m), warn: (m) => log.warn('update', m), error: () => {}, debug: () => {} }; // errors come through the 'error' event below
   autoUpdater.allowPrerelease = false;
 
   let notified = null;

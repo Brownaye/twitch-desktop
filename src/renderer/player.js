@@ -362,6 +362,7 @@ $('b-chapters').addEventListener('click', async (e) => {
 // Signed in, this page keeps an EventSub WebSocket; the main process subscribes it to channel.raid for the live
 // channel on screen. A raid shows a banner that counts down 8 s and then follows (Stay cancels, Go now skips).
 let eventSub = null;
+let raidRetry = 5000;
 let raidTimer = null;
 function raidsSocket(on) {
   if (!on) { if (eventSub) { const w = eventSub; eventSub = null; w.onclose = null; w.close(); pl.invoke('raids:session', null); } return; }
@@ -375,7 +376,15 @@ function raidsSocket(on) {
       else if (type === 'session_reconnect') { w.onclose = null; eventSub = open(m.payload.session.reconnect_url); setTimeout(() => w.close(), 3000); }
       else if (type === 'notification' && m.payload.subscription.type === 'channel.raid') onRaid(m.payload.event);
     };
-    w.onclose = () => { if (eventSub === w) { eventSub = null; setTimeout(() => raidsSocket(prefs.raids), 5000); } };
+    // Some networks drop long-lived sockets after a few seconds: wait longer after each short-lived connection
+    // (up to 5 minutes) instead of reconnecting, and making a new subscription, every few seconds.
+    const opened = Date.now();
+    w.onclose = () => {
+      if (eventSub !== w) return;
+      eventSub = null;
+      raidRetry = Date.now() - opened > 60e3 ? 5000 : Math.min(raidRetry * 2, 5 * 60e3);
+      setTimeout(() => raidsSocket(prefs.raids), raidRetry);
+    };
     return w;
   };
   eventSub = open('wss://eventsub.wss.twitch.tv/ws');
