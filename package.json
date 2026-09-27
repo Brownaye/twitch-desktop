@@ -90,10 +90,10 @@
       "uninstallerIcon": "build/icon.ico",
       "uninstallDisplayName": "Twitch Desktop",
       "deleteAppDataOnUninstall": false,
-      "artifactName": "Twitch-Desktop-Setup-${version}.${ext}"
+      "artifactName": "Twitch-Desktop-Setup.${ext}"
     },
     "portable": {
-      "artifactName": "Twitch-Desktop-${version}-portable.${ext}"
+      "artifactName": "Twitch-Desktop-Portable.${ext}"
     },
     "linux": {
       "target": [
@@ -123,10 +123,10 @@
       }
     },
     "appImage": {
-      "artifactName": "Twitch-Desktop-${version}-${arch}.${ext}"
+      "artifactName": "Twitch-Desktop.${ext}"
     },
     "deb": {
-      "artifactName": "twitch-desktop_${version}_${arch}.${ext}"
+      "artifactName": "twitch-desktop_${arch}.${ext}"
     },
     "publish": [
       {

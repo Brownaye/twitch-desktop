@@ -4,7 +4,12 @@ A desktop app for watching the channels you follow on Twitch, for Windows and Li
 left halfway through, past broadcasts and schedules, and plays streams in a player that docks beside the window
 with chat.
 
-Unofficial and not affiliated with Twitch (see the note at the bottom).
+<p align="center">
+  <a href="https://github.com/Brownaye/twitch-desktop/releases/latest/download/Twitch-Desktop-Setup.exe"><img src="docs/download-windows.png" width="330" alt="Download for Windows"></a>
+  <a href="https://github.com/Brownaye/twitch-desktop/releases/latest/download/Twitch-Desktop.AppImage"><img src="docs/download-linux.png" width="330" alt="Download for Linux"></a>
+  <br>
+  <sub>Free and open source. <a href="https://github.com/Brownaye/twitch-desktop/releases/latest">Other downloads</a> (portable exe, .deb) · Unofficial, not affiliated with Twitch</sub>
+</p>
 
 ![Switching between streams, multi-view, and the Schedule tab](docs/demo.gif)
 
@@ -36,8 +41,8 @@ checks), and OpenRouter or ntfy only if you set those up.
 
 Grab the latest build from the [Releases page](https://github.com/Brownaye/twitch-desktop/releases/latest).
 
-**Windows 10/11 (64-bit)**: `Twitch-Desktop-Setup-x.y.z.exe` is the normal installer and keeps itself up to date.
-`Twitch-Desktop-x.y.z-portable.exe` runs without installing but won't update itself.
+**Windows 10/11 (64-bit)**: `Twitch-Desktop-Setup.exe` is the normal installer and keeps itself up to date.
+`Twitch-Desktop-Portable.exe` runs without installing but won't update itself.
 
 The builds aren't code-signed, so the first time you run one SmartScreen will say "Windows protected your PC".
 Click **More info**, then **Run anyway**.
@@ -45,14 +50,14 @@ Click **More info**, then **Run anyway**.
 **Linux (64-bit)**: the AppImage works on most distros and updates itself:
 
 ```sh
-chmod +x Twitch-Desktop-*.AppImage
-./Twitch-Desktop-*.AppImage
+chmod +x Twitch-Desktop.AppImage
+./Twitch-Desktop.AppImage
 ```
 
 If it won't start you're probably missing FUSE 2 (`libfuse2` on Ubuntu/Debian, `fuse2` on Arch). Running it from a
 terminal shows the actual error.
 
-There's also a `.deb` for Debian/Ubuntu (`sudo apt install ./twitch-desktop_*.deb`). That one doesn't auto-update,
+There's also a `.deb` for Debian/Ubuntu (`sudo apt install ./twitch-desktop_amd64.deb`). That one doesn't auto-update,
 so install the new .deb when a release comes out.
 
 The installer and AppImage check for updates at startup and every 6 hours, download in the background, and install
