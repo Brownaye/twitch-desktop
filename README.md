@@ -6,7 +6,7 @@ with chat.
 
 Unofficial and not affiliated with Twitch (see the note at the bottom).
 
-![The Live list with the player docked beside it](docs/screenshot.png)
+![Switching between streams, multi-view, and the Schedule tab](docs/demo.gif)
 
 ## What it does
 
@@ -16,12 +16,21 @@ Unofficial and not affiliated with Twitch (see the note at the bottom).
 - A player that docks next to the window, detaches, or shrinks to picture-in-picture, with live chat (7TV,
   BetterTTV and FrankerFaceZ emotes)
 - Instant switching between streams, and multi-view for up to 4 at once
+- Hides Twitch's title card and buttons over the video, so all you see is the stream (Settings can turn that off)
 - Sleep timer, audio mode, per-channel volume, VOD chapters, skipping muted parts, following raids
 - Game alerts and optional phone alerts through [ntfy](https://ntfy.sh)
 - Sits in the tray and updates itself
 
 There's no server, account or telemetry behind it. It talks to Twitch, the three emote services, GitHub (update
 checks), and OpenRouter or ntfy only if you set those up.
+
+## Screenshots
+
+![The player docked beside the Live list, with chat underneath](docs/screenshot.png)
+
+![Multi-view: three streams at once, sound on the one you click](docs/multiview.png)
+
+![First launch, VODs, Schedule, and Channels with your watch time](docs/tabs.png)
 
 ## Install
 

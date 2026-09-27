@@ -35,7 +35,8 @@ const DEFAULT_SETTINGS = {
   chatRecap: false,         // the "What's going on?" AI recap in live chat (needs an OpenRouter key)
   openrouterKey: '',        // OpenRouter API key for the chat recap (kept in config.json on this machine only)
   openrouterModel: 'deepseek/deepseek-v4.1-flash',
-  backgroundLow: true,      // streams kept loaded out of sight play at the lowest quality
+  backgroundLow: true,      // streams kept loaded out of sight play at a lower quality
+  cleanPlayer: true,        // hide Twitch's title bar and buttons over the video (controls still show on hover)
   audioMode: false,         // audio mode: lowest quality, picture hidden (Twitch blocks true audio-only in its embed)
   mediaKeys: true,          // keyboard media keys control the player while it is open
   followRaids: true,        // signed in: when the channel you are watching raids, the player follows

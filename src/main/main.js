@@ -315,6 +315,7 @@ ipcMain.handle('settings:update', (_e, patch) => {
   if ('paused' in patch) setPaused(patch.paused);
   if (config.get().settings.pollSeconds !== before) poller.start();
   if ('chatRecap' in patch || 'openrouterKey' in patch) player.syncChat(); // shows or hides the recap button
+  if ('cleanPlayer' in patch) player.setCleanPlayer();
   send('settings:changed', config.get().settings);
   return config.get().settings;
 });

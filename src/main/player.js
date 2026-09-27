@@ -552,6 +552,30 @@ function guestKey(k) {
   else if (k === 'g') send('player:key', k);
 }
 
+// settings.cleanPlayer: Twitch's own layer over the video (title card, follow/subscribe/gift, the audience
+// warning tag) is hidden, and its control bar only shows while the pointer is over the video, so switching
+// streams shows just the picture. The full-screen mature-content gate is left alone: it has to be clicked.
+// Twitch forces display on .top-bar, and its parts can set their own visibility, hence the blunt selectors.
+const CLEAN_CSS = `.top-bar, .top-bar *, .disclosure-card, [data-test-selector="content-classification-warning-disclosure-overlay"] {
+    visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
+  .player-controls { opacity: 0 !important; transition: opacity 0.2s; }
+  .video-player__overlay:hover .player-controls { opacity: 1 !important; }`;
+const cleanKeys = new Map(); // guest webContents -> key of the inserted CSS
+
+async function applyClean(wc) {
+  const on = config.get().settings.cleanPlayer !== false;
+  const key = cleanKeys.get(wc);
+  try {
+    if (on && !key) cleanKeys.set(wc, await wc.insertCSS(CLEAN_CSS));
+    else if (!on && key) { cleanKeys.delete(wc); await wc.removeInsertedCSS(key); }
+  } catch { /* the page went away */ }
+}
+
+function setCleanPlayer() {
+  if (!alive()) return;
+  for (const wc of webContents.getAllWebContents()) if (wc.hostWebContents === player.webContents) applyClean(wc);
+}
+
 function create() {
   const win = main();
   player = new BrowserWindow({
@@ -589,6 +613,8 @@ function create() {
   });
   player.webContents.on('did-attach-webview', (_e, wc) => {
     guest = wc;
+    wc.on('dom-ready', () => { cleanKeys.delete(wc); applyClean(wc); }); // inserted CSS goes with the page
+    wc.once('destroyed', () => cleanKeys.delete(wc));
     wc.setAudioMuted(true); // every stream starts silent; the page unmutes the one on screen
     wc.setWindowOpenHandler(({ url }) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
     // Links inside the player (channel name, "watch on Twitch") open in the browser instead of replacing the video.
@@ -870,4 +896,4 @@ function init(opts) {
   onNowPlaying = opts.onNowPlaying || onNowPlaying;
 }
 
-module.exports = { init, attach, play, close, minimize, syncChat, toggleFullScreen, nowPlaying, capture, bounds, contents, setChat, chatOn, setSize, setMode, mode, setActive, setCollapsed, drag, setLive, toggleKeep, fromStart, catchUp, chatAuthChanged, setAudio, saveVolume, setSleepAtEnd, step, liveMeta, sendPrefs };
+module.exports = { init, attach, play, close, minimize, syncChat, setCleanPlayer, toggleFullScreen, nowPlaying, capture, bounds, contents, setChat, chatOn, setSize, setMode, mode, setActive, setCollapsed, drag, setLive, toggleKeep, fromStart, catchUp, chatAuthChanged, setAudio, saveVolume, setSleepAtEnd, step, liveMeta, sendPrefs };
