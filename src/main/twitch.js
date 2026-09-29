@@ -58,6 +58,7 @@ const CHANNEL_INFO_EVERY = 10 * 60e3; // offline title/category as set on the ch
 const VOD_EVERY = 60 * 60e3;          // last broadcast per offline channel
 const VODS_PER_POLL = 5;              // spread the per-channel VOD lookups over several polls
 const USER_REFRESH = 24 * 3600e3;     // avatars and display names
+const LIVE_GRACE = 5 * 60e3;          // how recent a live sighting must be to survive one missing poll
 
 // Channel title/category for everyone (one call) and, a few at a time, each offline channel's last VOD
 // so the board can say when they were last live even if the app was not running when they stopped.
@@ -115,15 +116,16 @@ async function check(logins, state) {
       state.live[login] = {
         id: s.id, title: s.title, game: s.game_name, gameId: s.game_id, startedAt: s.started_at, viewers: s.viewer_count,
         thumb: s.thumbnail_url, tags: s.tags || [], language: s.language, mature: !!s.is_mature,
-        peak: Math.max(s.viewer_count || 0, prev && prev.id === s.id ? prev.peak || 0 : 0), missed: 0,
+        peak: Math.max(s.viewer_count || 0, prev && prev.id === s.id ? prev.peak || 0 : 0), missed: 0, seenAt: now,
       };
       if (!prev) wentLive.push(login);
     } else if (prev) {
       // Helix occasionally omits a live channel for a single poll. Give one poll of grace before
-      // declaring the stream over so the board does not flicker.
-      if (!prev.missed) { state.live[login] = { ...prev, missed: 1 }; continue; }
+      // declaring the stream over so the board does not flicker. Only for a recent sighting: an entry left
+      // in state.json from the last time the app ran is stale and goes straight away, not a poll later.
+      if (!prev.missed && now - (prev.seenAt || 0) < LIVE_GRACE) { state.live[login] = { ...prev, missed: 1 }; continue; }
       delete state.live[login];
-      state.last[login] = { startedAt: Date.parse(prev.startedAt) || now, endedAt: now, title: prev.title, game: prev.game, peak: prev.peak || prev.viewers || null };
+      state.last[login] = { startedAt: Date.parse(prev.startedAt) || now, endedAt: Math.min(prev.seenAt || now, now), title: prev.title, game: prev.game, peak: prev.peak || prev.viewers || null };
     }
   }
   for (const l of Object.keys(state.live)) if (!logins.includes(l)) delete state.live[l]; // unfollowed

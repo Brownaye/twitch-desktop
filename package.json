@@ -1,7 +1,7 @@
 {
   "name": "twitch-desktop",
   "productName": "Twitch Desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Unofficial desktop app for watching the Twitch channels you follow, with a docked player and chat.",
   "main": "src/main/main.js",
   "scripts": {
