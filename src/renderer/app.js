@@ -894,7 +894,7 @@ function wireUi() {
   document.querySelectorAll('[data-setting-num]').forEach((el) => el.addEventListener('change', () => {
     const v = Number(el.value);
     const min = el.min === '' ? 1 : Number(el.min), max = Number(el.max) || Infinity;
-    if (!(v >= min && v <= max)) { snack(`Enter a number${max < Infinity ? ` from ${min} to ${max}` : ` of at least ${min}`}.`, true); return; }
+    if (el.value.trim() === '' || !(v >= min && v <= max)) { snack(`Enter a number${max < Infinity ? ` from ${min} to ${max}` : ` of at least ${min}`}.`, true); return; }
     save({ [el.dataset.settingNum]: v }, 'Saved');
   }));
   document.querySelectorAll('[data-setting-text]').forEach((el) => el.addEventListener('change', () => save({ [el.dataset.settingText]: el.value.trim() }, 'Saved')));

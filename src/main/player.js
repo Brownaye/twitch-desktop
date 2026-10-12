@@ -508,9 +508,11 @@ function liveMeta(c) {
 }
 
 // A channel with a heart has gone live (hearts.js): the player page offers to switch to it. Not when nothing is
-// being watched, or when that channel is what is on screen.
+// being watched, or when that channel is what is on screen (false). null while the player is out of sight
+// (minimised, or hidden along with the app), when nobody would see the card.
 function heart(c) {
   if (!alive() || !playing || playing.key === `live:${c.login}`) return false;
+  if (!player.isVisible() || player.isMinimized()) return null;
   send('player:heart', liveMeta(c));
   return true;
 }

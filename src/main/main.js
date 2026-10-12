@@ -361,7 +361,7 @@ ipcMain.handle('hearts:test', () => {
   const live = poller.status.channels.filter((c) => c.live && player.nowPlaying() !== `live:${c.login}`);
   const c = live.find((x) => config.get().hearts.includes(x.login)) || live[0];
   if (!c) return { ok: false, error: 'Nobody else you follow is live right now to show it with.' };
-  return player.heart(c) ? { ok: true, display: c.display } : { ok: false, error: 'The player is not open.' };
+  return player.heart(c) ? { ok: true, display: c.display } : { ok: false, error: 'The player is not open, or is minimised.' };
 });
 
 ipcMain.handle('twitch:vods', async (_e, { refresh } = {}) => {

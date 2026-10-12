@@ -12,21 +12,24 @@ const log = require('./log');
 
 const AI_EVERY = 60e3;
 const AI_MAX_WAIT = 15 * 60e3;
+const HOLD_MAX = 30 * 60e3; // a pop-up that is due while the player is out of sight waits this long for it to come back
 
-const pending = new Map(); // login -> { since, checkedAt, checking, aiDown }
+const pending = new Map(); // login -> { since, checkedAt, checking, aiDown, heldAt, why }
 let roster = () => [];     // the poller's channels
-let show = () => false;    // offers the switch in the player; false if nothing is being watched
+let show = () => false;    // offers the switch in the player; false if nothing is being watched, null if the player is out of sight
 
 function init(opts) {
   roster = opts.roster;
   show = opts.show;
 }
 
-// From the poller: this channel has just gone live.
+// From the poller: this channel has just gone live. The wait counts from when the stream started, which can be
+// well before now if the app was paused or the computer asleep.
 function wentLive(c) {
   const cfg = config.get();
   if (!c || cfg.settings.heartPopups === false || !cfg.hearts.includes(c.login)) return;
-  pending.set(c.login, { since: Date.now(), checkedAt: 0, checking: false, aiDown: false });
+  const now = Date.now();
+  pending.set(c.login, { since: Math.min(now, Date.parse(c.startedAt) || now), checkedAt: 0, checking: false, aiDown: false, heldAt: 0, why: '' });
   tick().catch((e) => log.warn('hearts', e.message));
 }
 
@@ -52,9 +55,20 @@ async function started(c) {
   }
 }
 
+// Shows the pop-up. With the player out of sight it is held and tried again on later ticks, up to HOLD_MAX.
 function fire(c, why) {
+  const p = pending.get(c.login);
+  const shown = show(c);
+  if (shown === null && p && (!p.heldAt || Date.now() - p.heldAt < HOLD_MAX)) {
+    if (!p.heldAt) {
+      p.heldAt = Date.now();
+      p.why = why;
+      log.info('hearts', `${c.login} is live (${why}): the player is out of sight, holding the pop-up until it is back`);
+    }
+    return;
+  }
   pending.delete(c.login);
-  log.info('hearts', `${c.login} is live (${why}): ${show(c) ? 'offered in the player' : 'nothing being watched, no pop-up'}`);
+  log.info('hearts', `${c.login} is live (${why}): ${shown ? 'offered in the player' : shown === null ? 'the player stayed out of sight, no pop-up' : 'nothing being watched, no pop-up'}`);
 }
 
 // Called every few seconds, and at once when a channel goes live.
@@ -66,6 +80,7 @@ async function tick() {
   for (const [login, p] of pending) {
     const c = live.get(login);
     if (!c || !hearts.has(login)) { pending.delete(login); continue; } // went offline again, or the heart was removed
+    if (p.heldAt) { fire(c, p.why); continue; }
     const waited = Date.now() - p.since;
     const fixed = Math.max(0, Number(s.heartWaitMinutes) || 0) * 60e3;
     if (!ai.introEnabled() || p.aiDown) {
