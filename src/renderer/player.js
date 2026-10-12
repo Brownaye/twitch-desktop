@@ -407,6 +407,50 @@ async function onRaid(ev) {
   raidTimer = setTimeout(go, 8000);
 }
 
+// ---------- hearts ----------
+// A channel you gave a heart has gone live while something else is playing (hearts.js in the main process): a card
+// slides in at the top right for 10 s with a countdown and "Switch now", then leaves by itself. Unlike a raid it
+// never switches on its own. Several going live together take turns.
+const HEART_MS = 10000;
+const heartQueue = [];
+let heartOn = false;
+let heartTimer = null;
+let heartTick = null;
+function heartNext() {
+  if (heartOn) return;
+  let meta = heartQueue.shift();
+  while (meta && current && current.kind === 'live' && current.login === meta.login) meta = heartQueue.shift(); // already there
+  if (!meta) return;
+  heartOn = true;
+  avatar($('heart-av'), meta);
+  $('heart-name').textContent = meta.display || meta.login;
+  $('heart-sub').textContent = meta.title || meta.game || '';
+  const arc = $('heart-arc');
+  arc.style.transition = 'none'; arc.style.strokeDashoffset = '0';
+  $('heart').classList.remove('out');
+  $('heart').hidden = false;
+  void arc.getBoundingClientRect();
+  arc.style.transition = `stroke-dashoffset ${HEART_MS}ms linear`; arc.style.strokeDashoffset = '97.4';
+  const end = Date.now() + HEART_MS;
+  const left = () => { $('heart-left').textContent = Math.max(1, Math.ceil((end - Date.now()) / 1000)); };
+  left();
+  heartTick = setInterval(left, 200);
+  heartTimer = setTimeout(heartDone, HEART_MS);
+  $('heart-go').onclick = () => { heartDone(); pl.invoke('player:play', meta); };
+  $('heart-x').onclick = heartDone;
+}
+function heartDone() {
+  if (!heartOn || $('heart').classList.contains('out')) return;
+  clearTimeout(heartTimer);
+  clearInterval(heartTick);
+  $('heart').classList.add('out');
+  setTimeout(() => { $('heart').hidden = true; heartOn = false; heartNext(); }, 300);
+}
+pl.on('player:heart', (meta) => {
+  if (!heartQueue.some((m) => m.login === meta.login)) heartQueue.push(meta);
+  heartNext();
+});
+
 // ---------- multi-view ----------
 // Up to 4 streams at once: the one on screen (with sound) plus the most recent ones kept in the background.
 // Clicking a tile makes it the one with sound (and moves chat to it) without reloading anything.

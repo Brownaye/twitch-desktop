@@ -507,6 +507,14 @@ function liveMeta(c) {
   };
 }
 
+// A channel with a heart has gone live (hearts.js): the player page offers to switch to it. Not when nothing is
+// being watched, or when that channel is what is on screen.
+function heart(c) {
+  if (!alive() || !playing || playing.key === `live:${c.login}`) return false;
+  send('player:heart', liveMeta(c));
+  return true;
+}
+
 // Media keys (play/pause, next, previous) work anywhere while the player is open, then go back to other apps.
 let keysOn = false;
 function mediaKeys(on) {
@@ -896,4 +904,4 @@ function init(opts) {
   onNowPlaying = opts.onNowPlaying || onNowPlaying;
 }
 
-module.exports = { init, attach, play, close, minimize, syncChat, setCleanPlayer, toggleFullScreen, nowPlaying, capture, bounds, contents, setChat, chatOn, setSize, setMode, mode, setActive, setCollapsed, drag, setLive, toggleKeep, fromStart, catchUp, chatAuthChanged, setAudio, saveVolume, setSleepAtEnd, step, liveMeta, sendPrefs };
+module.exports = { init, attach, play, close, minimize, syncChat, setCleanPlayer, toggleFullScreen, nowPlaying, capture, bounds, contents, setChat, chatOn, setSize, setMode, mode, setActive, setCollapsed, drag, setLive, toggleKeep, fromStart, catchUp, chatAuthChanged, setAudio, saveVolume, setSleepAtEnd, step, liveMeta, sendPrefs, heart };

@@ -162,6 +162,12 @@ textarea { min-height: 64px; resize: vertical; font-family: var(--font); }
 .tw-keep.on svg { fill: currentColor; }
 .tw:hover .tw-keep { opacity: 1; }
 .tw-keep:hover { background: var(--bg-3); color: var(--text); }
+.tw-heart { flex: none; width: 24px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; opacity: 0; }
+.tw-heart svg { width: 13px; height: 13px; }
+.tw-heart.on { opacity: 1; color: #ff5c8a; }
+.tw-heart.on svg { fill: currentColor; }
+.tw:hover .tw-heart { opacity: 1; }
+.tw-heart:hover { background: var(--bg-3); color: var(--text); }
 
 .tw-offlist { display: flex; flex-direction: column; }
 .tw.off { align-items: center; padding: 5px 6px; opacity: 0.75; }
@@ -285,9 +291,9 @@ textarea { min-height: 64px; resize: vertical; font-family: var(--font); }
 .chan-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chan.is-live .chan-sub { color: #ff8a8a; }
 .live-dot { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #e91916; vertical-align: 1px; }
-.chan .tw-bell, .chan .tw-keep, .chan .tw-vodbtn { opacity: 0.35; }
-.chan .tw-bell.on, .chan .tw-keep.on { opacity: 1; }
-.chan:hover .tw-bell, .chan:hover .tw-keep, .chan:hover .tw-vodbtn, .chan:hover .chan-rm { opacity: 1; }
+.chan .tw-bell, .chan .tw-keep, .chan .tw-heart, .chan .tw-vodbtn { opacity: 0.35; }
+.chan .tw-bell.on, .chan .tw-keep.on, .chan .tw-heart.on { opacity: 1; }
+.chan:hover .tw-bell, .chan:hover .tw-keep, .chan:hover .tw-heart, .chan:hover .tw-vodbtn, .chan:hover .chan-rm { opacity: 1; }
 .chan-rm { flex: none; width: 24px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; opacity: 0; }
 .chan-rm svg { width: 13px; height: 13px; }
 .chan-rm:hover { background: var(--danger); color: #fff; }
@@ -363,6 +369,6 @@ a.btn { text-decoration: none; display: inline-block; }
 :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 2px rgba(191, 148, 255, 0.35); }
 .tw:focus-visible, .vod:focus-visible, .chan:focus-visible { outline-offset: -2px; }
-.tw:focus-within .tw-bell, .tw:focus-within .tw-keep, .tw:focus-within .tw-vodbtn, .tw:focus-within .tw-ext, .tw:focus-within .tw-start,
-.chan:focus-within .tw-bell, .chan:focus-within .tw-keep, .chan:focus-within .tw-vodbtn, .chan:focus-within .chan-rm, .sched .tw-bell:focus-visible,
+.tw:focus-within .tw-bell, .tw:focus-within .tw-keep, .tw:focus-within .tw-heart, .tw:focus-within .tw-vodbtn, .tw:focus-within .tw-ext, .tw:focus-within .tw-start,
+.chan:focus-within .tw-bell, .chan:focus-within .tw-keep, .chan:focus-within .tw-heart, .chan:focus-within .tw-vodbtn, .chan:focus-within .chan-rm, .sched .tw-bell:focus-visible,
 .vod:focus-within .vod-acts, .tw.off:focus-within { opacity: 1; }

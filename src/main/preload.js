@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const INVOKE = new Set([
   'app:bootstrap', 'app:pause', 'settings:update', 'poll:now',
-  'channels:add', 'channels:remove', 'channels:favourite', 'follows:sync', 'schedule:get', 'schedule:remind', 'stats:get', 'ntfy:test',
+  'channels:add', 'channels:remove', 'channels:favourite', 'channels:heart', 'hearts:test','follows:sync', 'schedule:get', 'schedule:remind', 'stats:get', 'ntfy:test',
   'auth:status', 'auth:signIn', 'auth:cancel', 'auth:signOut',
   'twitch:vods', 'twitch:play', 'twitch:watched', 'twitch:nowPlaying', 'twitch:keep', 'twitch:fromStart', 'twitch:continue', 'twitch:catchUp', 'twitch:forget',
   'open:external', 'open:data',

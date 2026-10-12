@@ -1,6 +1,6 @@
 'use strict';
 // config.json (in the data folder): the channels you follow, which of them are favourites (bell: listed first,
-// toast when live), and settings. Nothing secret ships with the app: Twitch is "Sign in with Twitch" with a public
+// toast when live), which have a heart (a pop-up in the player when they go live), and settings. Nothing secret ships with the app: Twitch is "Sign in with Twitch" with a public
 // client id, and the optional OpenRouter key for the chat recap is a setting.
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +26,9 @@ const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
 const DEFAULT_SETTINGS = {
   toasts: true,             // desktop toast when a favourite goes live
+  heartPopups: true,        // pop-up in the player when a channel with a heart goes live
+  heartWaitMinutes: 5,      // how long after going live the pop-up shows, to let a "starting soon" screen pass (0 = at once)
+  heartAiIntro: false,      // instead of waiting a fixed time, an AI model watches for the intro screen ending (needs an OpenRouter key)
   alwaysOnTop: false,
   closeToTray: true,
   paused: false,            // "turned off": no polling and no API calls until turned back on
@@ -97,7 +100,7 @@ function load() {
   const r = isObj(raw) ? raw : {};
   const settings = { ...DEFAULT_SETTINGS, ...(isObj(r.settings) ? r.settings : {}) };
   if (!Array.isArray(settings.twitchKeepActive)) settings.twitchKeepActive = [];
-  config = { settings, channels: logins(r.channels), favourites: logins(r.favourites) };
+  config = { settings, channels: logins(r.channels), favourites: logins(r.favourites), hearts: logins(r.hearts) };
   return config;
 }
 

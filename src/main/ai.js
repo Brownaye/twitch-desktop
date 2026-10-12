@@ -1,6 +1,7 @@
 'use strict';
-// OpenRouter, used for one thing: the live chat recap ("What's going on?") in the player's chat panel. Off unless
-// turned on in Settings with the user's own OpenRouter key.
+// OpenRouter, used for two things, each off unless turned on in Settings with the user's own OpenRouter key: the
+// live chat recap ("What's going on?") in the player's chat panel, and telling when a heart channel that has just
+// gone live is past its "starting soon" screen (hearts.js).
 const config = require('./config');
 const log = require('./log');
 
@@ -14,7 +15,7 @@ function enabled() {
 async function chat(messages, { maxTokens = 400, temperature = 0.3, timeoutMs = 45000 } = {}) {
   const { key, model } = config.openrouter();
   if (!key) {
-    if (!warnedNoKey) { warnedNoKey = true; log.warn('ai', 'no OpenRouter key in Settings: chat recap disabled'); }
+    if (!warnedNoKey) { warnedNoKey = true; log.warn('ai', 'no OpenRouter key in Settings: AI features disabled'); }
     return null;
   }
   const ctrl = new AbortController();
@@ -56,4 +57,18 @@ async function summarizeChat({ streamer, title, game, minutes, messages, previou
   return out ? out.replace(/^["']+|["']+$/g, '').split('\n')[0].trim() : null;
 }
 
-module.exports = { enabled, summarizeChat };
+const introEnabled = () => config.get().settings.heartAiIntro === true && !!config.openrouter().key;
+
+// Is this frame of a stream that has just gone live still a placeholder ("starting soon", a countdown, an intro
+// loop)? `image` is a data: URL of Twitch's preview picture. true / false, or null when the model gave no usable
+// answer (no key, an error, a model that cannot read images).
+async function isIntroScreen({ streamer, title, image }) {
+  if (!introEnabled()) return null;
+  const prompt = `This is a frame from ${streamer}'s Twitch stream, which went live a few minutes ago${title ? ` (title: ${String(title).slice(0, 140)})` : ''}. Streamers often open with a placeholder before they appear: a "starting soon" or "stream starting" card, a countdown, a looping animation or artwork with no gameplay and nobody on camera.\n\nReply with one word: WAITING if this frame is such a placeholder, STARTED if the stream proper is under way (a person on camera, gameplay, a desktop or anything else that is actual content).`;
+  const out = await chat([{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: image } }] }], { maxTokens: 10, temperature: 0, timeoutMs: 30000 });
+  if (!out) return null;
+  const waiting = /waiting/i.test(out), started = /started/i.test(out);
+  return waiting === started ? null : waiting;
+}
+
+module.exports = { enabled, summarizeChat, introEnabled, isIntroScreen };

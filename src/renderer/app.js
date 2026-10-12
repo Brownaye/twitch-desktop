@@ -20,6 +20,7 @@ const ICONS = {
   check: '<polyline points="20 6 9 17 4 12"/>',
   rewind: '<polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/>',
   bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  heart: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
   external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
@@ -28,7 +29,7 @@ const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 
 // ---------- state ----------
 const S = {
-  settings: {}, favourites: [], following: [], status: { channels: [] }, setup: {}, log: [],
+  settings: {}, favourites: [], hearts: [], following: [], status: { channels: [] }, setup: {}, log: [],
   tab: 'live', settingsOpen: false, nowPlaying: null,
   vods: null, vodsLoading: false, vodFilter: { channel: '', unwatched: false }, vodShow: 60,
   cont: null, chanFilter: '', auth: { signedIn: false }, sched: null, schedLoading: false, stats: null,
@@ -115,6 +116,11 @@ function keepHtml(c) {
   const tip = on ? 'Kept loaded: while live, this stream stays loaded (muted, out of sight) in the player so switching to it is instant. Click to stop.' : 'Keep loaded for instant switching: while live, this stream stays loaded (muted, out of sight) in the player';
   return `<button class="tw-keep ${on ? 'on' : ''}" data-keep="${esc(c.login)}" title="${esc(tip)}" aria-pressed="${on ? 'true' : 'false'}">${icon('bolt')}</button>`;
 }
+function heartHtml(c) {
+  const on = S.hearts.includes(c.login);
+  const tip = on ? `Heart: when ${c.display || c.login} goes live while you are watching something else, the player offers to switch. Click to remove.` : `Give ${c.display || c.login} a heart: when they go live while you are watching something else, the player offers to switch`;
+  return `<button class="tw-heart ${on ? 'on' : ''}" data-heart="${esc(c.login)}" title="${esc(tip)}" aria-pressed="${on ? 'true' : 'false'}">${icon('heart')}</button>`;
+}
 
 const vodBtnHtml = (c) => `<button class="tw-vodbtn" data-vods="${esc(c.login)}" title="Past broadcasts (VODs)" aria-label="Past broadcasts from ${esc(c.display || c.login)}">${icon('film')}</button>`;
 
@@ -127,7 +133,7 @@ function liveRowHtml(c) {
   return `<div class="tw live ${playing ? 'playing' : ''}" data-live="${esc(c.login)}" title="Watch ${esc(c.display)}" role="button" tabindex="0" aria-label="Watch ${esc(c.display)} live">
     <div class="tw-thumb">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" data-drop>` : ''}<span class="tw-badge">LIVE</span>${playing ? eqHtml() : `<span class="tw-hoverplay">${icon('play')}</span>`}<button class="tw-start" data-start="${esc(c.login)}" title="Watch from the beginning of this stream" aria-label="Watch ${esc(c.display)} from the beginning of this stream">${icon('rewind')}</button><button class="tw-ext" data-ext="${esc(c.url)}" title="Open on twitch.tv" aria-label="Open ${esc(c.display)} on twitch.tv">${icon('external')}</button><span class="tw-viewers" title="Viewers">${icon('eye')}${fmtNum(c.viewers)}</span></div>
     <div class="tw-info">
-      <div class="tw-head">${avatarHtml(c, 'tw-av')}<span class="tw-name">${esc(c.display)}</span><span class="tw-up" data-since="${since}" title="Live since ${new Date(since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}">${fmtSpan(Date.now() - since)}</span>${keepHtml(c)}${bellHtml(c)}</div>
+      <div class="tw-head">${avatarHtml(c, 'tw-av')}<span class="tw-name">${esc(c.display)}</span><span class="tw-up" data-since="${since}" title="Live since ${new Date(since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}">${fmtSpan(Date.now() - since)}</span>${keepHtml(c)}${heartHtml(c)}${bellHtml(c)}</div>
       <div class="tw-title">${esc(c.title || '(no title)')}</div>
       <div class="tw-sub">${extras}${tags}</div>
     </div>
@@ -148,6 +154,7 @@ function offRowHtml(c) {
       ${line ? `<div class="tw-title">${esc(line)}</div>` : ''}
     </div>
     ${vodBtnHtml(c)}
+    ${heartHtml(c)}
     ${bellHtml(c)}
   </div>`;
 }
@@ -224,7 +231,7 @@ function renderLive(view) {
   const live = all.filter((c) => c.live).sort((a, b) => fav(a, b) || (b.viewers || 0) - (a.viewers || 0));
   const off = all.filter((c) => !c.live).sort((a, b) => fav(a, b) || (b.lastEndedAt || 0) - (a.lastEndedAt || 0) || a.display.localeCompare(b.display));
   view.innerHTML = `
-    <div class="tw-summary"><span class="tw-pill live">${live.length} live</span><span class="tw-pill">${off.length} offline</span><span class="muted small">Bell: favourite, notified when live · Bolt: keep loaded for instant switching</span></div>
+    <div class="tw-summary"><span class="tw-pill live">${live.length} live</span><span class="tw-pill">${off.length} offline</span><span class="muted small">Bell: favourite, notified when live · Heart: offer to switch in the player when live · Bolt: keep loaded for instant switching</span></div>
     ${live.map(liveRowHtml).join('') || '<div class="empty small-empty">Nobody you follow is live right now.</div>'}
     ${off.length ? '<div class="day">Offline</div>' : ''}
     <div class="tw-offlist">${off.map(offRowHtml).join('')}</div>`;
@@ -238,9 +245,10 @@ function renderLive(view) {
   bindRowButtons(view);
 }
 
-// Bell (favourite) and bolt (keep active) wherever they appear.
+// Bell (favourite), heart and bolt (keep active) wherever they appear.
 function bindRowButtons(root) {
   root.querySelectorAll('[data-fav]').forEach((b) => b.addEventListener('click', () => toggleFav(b.dataset.fav)));
+  root.querySelectorAll('[data-heart]').forEach((b) => b.addEventListener('click', () => toggleHeart(b.dataset.heart)));
   root.querySelectorAll('[data-keep]').forEach((b) => b.addEventListener('click', () => toggleKeep(b.dataset.keep)));
 }
 
@@ -253,6 +261,20 @@ async function toggleFav(login) {
   else {
     if (r) fail(r, 'Could not change favourites');
     S.favourites = on ? S.favourites.filter((l) => l !== login) : [...S.favourites, login];
+    render();
+  }
+}
+
+// Heart: when the channel goes live while something else is playing, the player offers to switch to it.
+async function toggleHeart(login) {
+  const on = !S.hearts.includes(login);
+  S.hearts = on ? [...S.hearts, login] : S.hearts.filter((l) => l !== login);
+  render();
+  const r = await ask('channels:heart', { login, on });
+  if (r && r.ok) snack(on ? `${login} has a heart: the player offers to switch when they go live` : `${login} no longer has a heart`);
+  else {
+    if (r) fail(r, 'Could not change hearts');
+    S.hearts = on ? S.hearts.filter((l) => l !== login) : [...S.hearts, login];
     render();
   }
 }
@@ -605,7 +627,7 @@ function renderChannels(view) {
       <div class="chan ${c.live ? 'is-live' : ''}" data-login="${esc(c.login)}" ${c.live ? `role="button" tabindex="0" aria-label="Watch ${esc(c.display)} live" title="Watch ${esc(c.display)}"` : ''}>
         ${avatarHtml(c, 'tw-av')}
         <div class="chan-main"><span class="tw-name">${esc(c.display)}</span><span class="chan-sub">${c.live ? `<span class="live-dot"></span>live${c.game ? ` - ${esc(c.game)}` : ''}` : c.lastEndedAt ? `last live ${esc(ago(c.lastEndedAt))}` : esc(c.game || '')}</span></div>
-        ${keepHtml(c)}${bellHtml({ ...c, toast: fav.has(c.login) })}
+        ${keepHtml(c)}${heartHtml(c)}${bellHtml({ ...c, toast: fav.has(c.login) })}
         ${vodBtnHtml(c)}
         <button class="chan-rm" data-rm="${esc(c.login)}" title="Remove from this app" aria-label="Remove ${esc(c.display)} from this app">${icon('trash')}</button>
       </div>`).join('') || none}
@@ -821,7 +843,7 @@ function wireEvents() {
     S.sig = sig;
     if (S.settingsOpen || S.tab === 'vods') renderCounts(); else render();
   });
-  tw.on('channels:changed', ({ following, favourites }) => { S.following = following; S.favourites = favourites; if (!S.settingsOpen) render(); });
+  tw.on('channels:changed', ({ following, favourites, hearts }) => { S.following = following; S.favourites = favourites; S.hearts = hearts; if (!S.settingsOpen) render(); });
   tw.on('settings:changed', (s) => { S.settings = s; renderChrome(); if (S.settingsOpen) renderSettings(); });
   tw.on('auth:changed', (a) => {
     const was = signedIn();
@@ -871,7 +893,7 @@ function wireUi() {
   document.querySelectorAll('[data-setting]').forEach((el) => el.addEventListener('change', () => save({ [el.dataset.setting]: el.checked })));
   document.querySelectorAll('[data-setting-num]').forEach((el) => el.addEventListener('change', () => {
     const v = Number(el.value);
-    const min = Number(el.min) || 1, max = Number(el.max) || Infinity;
+    const min = el.min === '' ? 1 : Number(el.min), max = Number(el.max) || Infinity;
     if (!(v >= min && v <= max)) { snack(`Enter a number${max < Infinity ? ` from ${min} to ${max}` : ` of at least ${min}`}.`, true); return; }
     save({ [el.dataset.settingNum]: v }, 'Saved');
   }));
@@ -879,6 +901,11 @@ function wireUi() {
   $('#ntfy-test').addEventListener('click', async () => {
     if (!String(S.settings.ntfyTopic || '').trim()) { snack('Enter a topic first.', true); return; }
     if (await ask('ntfy:test')) snack('Test sent to your phone (and as a notification here)');
+  });
+  $('#heart-test').addEventListener('click', async () => {
+    const r = await ask('hearts:test');
+    if (r && r.ok) snack(`Showing the pop-up for ${r.display} in the player`);
+    else if (r) fail(r, 'Could not show the pop-up');
   });
   const keyBox = $('#ai-key'), keyShow = $('#ai-key-show');
   keyShow.addEventListener('click', () => {
@@ -897,7 +924,7 @@ function wireUi() {
     $('#view').innerHTML = `<div class="empty"><strong>Twitch Desktop could not start.</strong><br><span class="muted small">${esc(friendly(e.message))}</span></div>`;
     return;
   }
-  Object.assign(S, { settings: b.settings, favourites: b.favourites, following: b.following, status: b.status, log: b.log, auth: b.auth, setup: b.setup });
+  Object.assign(S, { settings: b.settings, favourites: b.favourites, hearts: b.hearts, following: b.following, status: b.status, log: b.log, auth: b.auth, setup: b.setup });
   S.nowPlaying = await ask('twitch:nowPlaying');
   wireUi();
   wireEvents();

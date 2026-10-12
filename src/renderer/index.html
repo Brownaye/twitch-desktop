@@ -59,6 +59,16 @@
       </div>
 
       <div class="panel">
+        <h3>Hearts</h3>
+        <p class="muted small">Give a channel a heart (next to the bell) and, when it goes live while you are watching something else, a card slides into the player for 10 seconds with a <strong>Switch now</strong> button.</p>
+        <label class="setting"><input type="checkbox" data-setting="heartPopups" /> Offer to switch when a channel with a heart goes live</label>
+        <label class="setting col">Minutes to wait after they go live, so the "starting soon" screen is over (0 = straight away)<input type="number" min="0" max="30" data-setting-num="heartWaitMinutes" /></label>
+        <label class="setting"><input type="checkbox" data-setting="heartAiIntro" /> Let AI spot the end of the "starting soon" screen instead (needs the OpenRouter key below)</label>
+        <p class="muted small">With this on, Twitch's preview picture of the stream is sent to the AI model once a minute until it shows the stream proper, then the card appears (after 15 minutes it appears anyway). Twitch only renews that picture every few minutes, so it can run a little behind.</p>
+        <div class="row"><button class="btn" id="heart-test">Show me one now</button><span class="muted small">While a stream is playing: the pop-up for another channel that is live.</span></div>
+      </div>
+
+      <div class="panel">
         <h3>Phone alerts (ntfy, optional)</h3>
         <p class="muted small">Alerts can also go to your phone through <a href="https://ntfy.sh">ntfy</a>: install the ntfy app, subscribe to a topic name only you know, and enter the same name here. Leave it empty to keep alerts on this computer only. Topics on ntfy.sh are public to anyone who guesses the name, so make it long and random.</p>
         <label class="setting col">Topic<input type="text" data-setting-text="ntfyTopic" placeholder="e.g. td-7f3k9q2m-alerts" /></label>

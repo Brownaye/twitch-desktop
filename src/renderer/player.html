@@ -73,6 +73,12 @@
         <div class="raid-bar"><span id="raid-fill"></span></div>
         <div class="raid-acts"><button class="raid-go" id="raid-go">Go now</button><button class="raid-stay" id="raid-stay">Stay</button></div>
       </div>
+      <div class="heart" id="heart" role="status" hidden>
+        <span class="heart-who"><span class="av" id="heart-av"></span><svg class="heart-beat" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+        <div class="heart-text"><div class="heart-line"><strong id="heart-name"></strong> is live</div><div class="heart-sub" id="heart-sub"></div></div>
+        <button class="heart-go" id="heart-go">Switch now</button>
+        <button class="heart-x" id="heart-x" title="Dismiss" aria-label="Dismiss"><svg class="heart-ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5"/><circle id="heart-arc" cx="18" cy="18" r="15.5"/></svg><span id="heart-left"></span></button>
+      </div>
       <div class="sleep-fade" id="sleep-fade" hidden><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>Sleep timer: fading out</span></div>
       <div class="ptoast" id="ptoast" hidden></div>
       <button class="edge" id="b-edge" title="Hide the app"><svg viewBox="0 0 24 24"><polyline id="edge-arrow" points="9 6 15 12 9 18"/></svg></button>

@@ -16,6 +16,8 @@ with chat.
 ## What it does
 
 - Live list of the channels you follow, favourites first, with toasts when a favourite goes live
+- Hearts: give a channel a heart and, when it goes live while you're watching something else, a card slides into
+  the player for 10 seconds with a "Switch now" button (after a wait, so you don't land on a "starting soon" screen)
 - Continue: resume VODs you stopped partway, or rejoin/catch up on a live stream you left
 - Past broadcasts per channel with saved progress, and everyone's schedule for the next week with reminders
 - A player that docks next to the window, detaches, or shrinks to picture-in-picture, with live chat (7TV,
@@ -105,6 +107,15 @@ The "What's going on?" button under chat gives you a one-line summary of the las
 you join partway through. It uses [OpenRouter](https://openrouter.ai) with your own API key: turn it on in
 Settings and paste the key (you can pick the model there too). A few dollars of credit goes a long way. Only the
 recent chat of the channel you're watching is sent, and only when you press the button.
+
+## Hearts and "starting soon" screens
+
+Twitch doesn't say when a stream gets past its intro screen, so the heart pop-up waits before it shows. By default
+that's 5 minutes after the channel goes live (Settings > Hearts, 0 to show it straight away). If you have an
+OpenRouter key set up you can let an AI model judge it instead: once a minute it's sent Twitch's preview picture of
+the stream, and the pop-up shows when that's no longer a placeholder, or after 15 minutes regardless. Twitch only
+renews the preview every 5 minutes, so this can run a few minutes behind the real start. The model you pick has
+to accept images.
 
 ## Your data
 

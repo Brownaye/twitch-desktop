@@ -1,6 +1,6 @@
 'use strict';
 // Twitch Desktop: the window (the board: Live / Continue / VODs / Channels / Settings), the tray, go-live toasts
-// for favourites, and the IPC for everything the window and the player panels ask for.
+// for favourites, go-live pop-ups in the player for hearts, and the IPC for everything the window and the player panels ask for.
 const path = require('path');
 const fs = require('fs');
 const { app, BrowserWindow, Tray, Menu, Notification, ipcMain, shell, nativeImage, screen } = require('electron');
@@ -15,6 +15,7 @@ const auth = require('./auth');
 const raids = require('./raids');
 const emotes = require('./emotes');
 const schedule = require('./schedule');
+const hearts = require('./hearts');
 const updater = require('./updater');
 const log = require('./log');
 
@@ -236,6 +237,7 @@ function bootstrap() {
   return {
     settings: cfg.settings,
     favourites: cfg.favourites,
+    hearts: cfg.hearts,
     following: cfg.channels,
     status: poller.status,
     auth: auth.status(),
@@ -246,6 +248,11 @@ function bootstrap() {
 }
 
 // ---------- channels ----------
+function sendChannels() {
+  const c = config.get();
+  send('channels:changed', { following: c.channels, favourites: c.favourites, hearts: c.hearts });
+}
+
 async function addChannels(text) {
   const logins = twitch.parseLogins(text).filter((l) => !config.get().channels.includes(l));
   if (!logins.length) return { ok: false, error: 'No new channel names found.' };
@@ -258,7 +265,7 @@ async function addChannels(text) {
   if (!ok.length) return { ok: false, error: `Not found on Twitch: ${unknown.join(', ')}` };
   config.update((c) => { c.channels.push(...ok); });
   log.info('channels', `added ${ok.join(', ')}`);
-  send('channels:changed', { following: config.get().channels, favourites: config.get().favourites });
+  sendChannels();
   poller.poll();
   return { ok: true, added: found, unknown };
 }
@@ -267,11 +274,12 @@ function removeChannel(login) {
   config.update((c) => {
     c.channels = c.channels.filter((l) => l !== login);
     c.favourites = c.favourites.filter((l) => l !== login);
+    c.hearts = c.hearts.filter((l) => l !== login);
     c.settings.twitchKeepActive = (c.settings.twitchKeepActive || []).filter((l) => l !== login);
   });
   poller.status.channels = poller.status.channels.filter((c) => c.login !== login);
   send('status', poller.status);
-  send('channels:changed', { following: config.get().channels, favourites: config.get().favourites });
+  sendChannels();
   return { ok: true };
 }
 
@@ -286,7 +294,7 @@ async function syncFollows({ quiet = false } = {}) {
   if (added.length) {
     config.update((c) => { c.channels.push(...added); });
     log.info('follows', `added ${added.length} channel(s) you follow on Twitch: ${added.slice(0, 8).join(', ')}${added.length > 8 ? ', ...' : ''}`);
-    send('channels:changed', { following: config.get().channels, favourites: config.get().favourites });
+    sendChannels();
     poller.poll();
   }
   const extra = config.get().channels.filter((l) => !follows.includes(l));
@@ -299,8 +307,19 @@ function setFavourite(login, on) {
     if (on) set.add(login); else set.delete(login);
     c.favourites = c.channels.filter((l) => set.has(l));
   });
-  send('channels:changed', { following: config.get().channels, favourites: config.get().favourites });
+  sendChannels();
   return { ok: true, favourites: config.get().favourites };
+}
+
+// A heart: a pop-up in the player when this channel goes live while something else is being watched (hearts.js).
+function setHeart(login, on) {
+  config.update((c) => {
+    const set = new Set(c.hearts);
+    if (on) set.add(login); else set.delete(login);
+    c.hearts = c.channels.filter((l) => set.has(l));
+  });
+  sendChannels();
+  return { ok: true, hearts: config.get().hearts };
 }
 
 // ---------- IPC ----------
@@ -335,6 +354,15 @@ ipcMain.handle('auth:cancel', () => auth.cancel());
 ipcMain.handle('auth:signOut', () => auth.signOut());
 ipcMain.handle('livechat:auth', () => auth.chatLogin());
 ipcMain.handle('channels:favourite', (_e, { login, on }) => setFavourite(String(login || ''), !!on));
+ipcMain.handle('channels:heart', (_e, { login, on }) => setHeart(String(login || ''), !!on));
+// Settings > Hearts > "Show me one now": the pop-up for a channel that is live (one with a heart if there is one).
+ipcMain.handle('hearts:test', () => {
+  if (!player.nowPlaying()) return { ok: false, error: 'Play a stream first: the pop-up shows in the player.' };
+  const live = poller.status.channels.filter((c) => c.live && player.nowPlaying() !== `live:${c.login}`);
+  const c = live.find((x) => config.get().hearts.includes(x.login)) || live[0];
+  if (!c) return { ok: false, error: 'Nobody else you follow is live right now to show it with.' };
+  return player.heart(c) ? { ok: true, display: c.display } : { ok: false, error: 'The player is not open.' };
+});
 
 ipcMain.handle('twitch:vods', async (_e, { refresh } = {}) => {
   if (paused()) return PAUSED;
@@ -391,6 +419,7 @@ ipcMain.handle('window:pin', (_e, v) => { setAlwaysOnTop(v); return config.get()
 // ---------- wiring ----------
 poller.on('status', (st) => { send('status', st); player.setLive(st.channels); if (tray) tray.rebuild(); });
 poller.on('live', liveToast);
+poller.on('live', hearts.wentLive);
 poller.on('game', gameToast);
 log.subscribe((line) => send('log', line));
 // Signing in starts checking (and syncs follows); signing out, or a refused refresh, stops it and clears the board.
@@ -422,6 +451,8 @@ app.whenReady().then(() => {
   createTray();
   poller.start();
   updater.init();
+  hearts.init({ roster: () => poller.status.channels, show: (c) => player.heart(c) });
+  setInterval(() => hearts.tick().catch((e) => log.warn('hearts', e.message)), 15e3);
   setInterval(remindDue, 30e3);
   setInterval(() => { if (!paused() && signedIn()) schedule.get().catch(() => {}); }, 3600e3);
   setTimeout(() => { if (!paused() && signedIn()) schedule.get().catch(() => {}); }, 15e3);
