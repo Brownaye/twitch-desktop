@@ -77,6 +77,7 @@ function makeView(key, kind, dur) {
   stage.insertBefore(wv, $('snap'));
   const v = { key, kind, dur, wv, timer: null, parkedAt: 0, login: null, meta: null };
   v.ready = new Promise((r) => wv.addEventListener('dom-ready', r, { once: true }));
+  wv.addEventListener('render-process-gone', () => gone(v));
   if (kind === 'vod') {
     wv.addEventListener('dom-ready', () => armSkip(v)); // again after any reload of the page
     wv.addEventListener('console-message', (e) => {
@@ -86,6 +87,19 @@ function makeView(key, kind, dur) {
   }
   views.set(key, v);
   return v;
+}
+
+// A stream's page crashed (out of memory, a GPU reset): the one on screen loads again, one out of sight is let go.
+function gone(v) {
+  if (views.get(v.key) !== v) return;
+  if (v !== active) { drop(v); return; }
+  ptoast('The stream stopped unexpectedly: loading it again');
+  v.ready = new Promise((r) => v.wv.addEventListener('dom-ready', r, { once: true }));
+  v.wv.reload();
+  mute(v, false);
+  v.ready.then(() => pl.invoke('player:active', v.wv.getWebContentsId())).catch(() => {});
+  applyQuality(v);
+  applyVolume(v);
 }
 
 function drop(v) {
@@ -111,7 +125,7 @@ function park(v) {
 
 // Kept channels do not count towards MAX_WARM and never time out.
 function trimWarm() {
-  if (grid) return; // multi-view keeps its tiles
+  if (grid) return; // multi-view keeps its tiles (layoutGrid lets go of the rest)
   const warm = [...views.values()].filter((w) => w.parkedAt && !kept.has(w.key)).sort((a, b) => a.parkedAt - b.parkedAt);
   while (warm.length > MAX_WARM) drop(warm.shift());
 }
@@ -252,7 +266,7 @@ pl.on('player:load', load);
 pl.on('player:prefs', (p) => {
   const was = prefs;
   prefs = p;
-  raidsSocket(!!p.raids);
+  raidsSocket(raidsWanted());
   if (was.audio !== p.audio || was.bgLow !== p.bgLow) for (const v of views.values()) applyQuality(v);
   renderAudio();
 });
@@ -304,8 +318,10 @@ pl.on('player:key', (k) => {
 // otherwise carry on into the next part.
 let sleepAt = 0;
 let sleepEnd = false;
+let fading = false;
 function setSleep(what) {
   $('sleep-menu').hidden = true;
+  if (fading && active) js(active, 'window.__tdSleepOff = true'); // any choice during the fade stops the fade
   sleepAt = 0;
   sleepEnd = what === 'end';
   pl.invoke('player:sleepEnd', sleepEnd);
@@ -324,9 +340,15 @@ async function sleepNow() {
   sleepAt = 0; sleepEnd = false;
   renderSleep();
   $('sleep-fade').hidden = false;
+  fading = true;
+  let r = true;
   if (active) {
-    await withCore(active, `const v0 = c.getVolume(); for (let i = 20; i >= 0; i--) { c.setVolume(v0 * i / 20); await new Promise((r) => setTimeout(r, 1000)); } c.pause(); c.setVolume(v0); return true;`);
+    r = await withCore(active, `window.__tdSleepOff = false; const v0 = c.getVolume();
+      for (let i = 20; i >= 0; i--) { if (window.__tdSleepOff) { c.setVolume(v0); return 'off'; } c.setVolume(v0 * i / 20); await new Promise((r) => setTimeout(r, 1000)); }
+      c.pause(); c.setVolume(v0); return true;`);
   }
+  fading = false;
+  if (r === 'off') { $('sleep-fade').hidden = true; return; }
   document.body.classList.add('leave');
   setTimeout(() => pl.invoke('player:close'), 220);
 }
@@ -361,34 +383,61 @@ $('b-chapters').addEventListener('click', async (e) => {
 // ---------- following raids ----------
 // Signed in, this page keeps an EventSub WebSocket; the main process subscribes it to channel.raid for the live
 // channel on screen. A raid shows a banner that counts down 8 s and then follows (Stay cancels, Go now skips).
+// The socket is only open while a live channel is on screen: Twitch closes one with no subscription on it after
+// about 10 s (close code 4003), which used to look like a bad network and pushed reconnects out to 5 minutes.
 let eventSub = null;
 let raidRetry = 5000;
 let raidTimer = null;
+let raidRetryTimer = null;
+let raidHeard = 0;       // last message on the socket (Twitch sends a keepalive every few seconds)
+let raidKeepalive = 10;
+const raidsWanted = () => !!prefs.raids && !!current && current.kind === 'live';
 function raidsSocket(on) {
-  if (!on) { if (eventSub) { const w = eventSub; eventSub = null; w.onclose = null; w.close(); pl.invoke('raids:session', null); } return; }
+  if (!on) {
+    clearTimeout(raidRetryTimer);
+    if (eventSub) { const w = eventSub; eventSub = null; w.onclose = null; w.close(); pl.invoke('raids:session', null); }
+    return;
+  }
   if (eventSub) return;
-  const open = (url) => {
+  const open = (url, moved) => {
     const w = new WebSocket(url);
+    raidHeard = Date.now();
     w.onmessage = (e) => {
+      raidHeard = Date.now();
       let m; try { m = JSON.parse(e.data); } catch { return; }
       const type = m.metadata && m.metadata.message_type;
-      if (type === 'session_welcome') pl.invoke('raids:session', m.payload.session.id);
-      else if (type === 'session_reconnect') { w.onclose = null; eventSub = open(m.payload.session.reconnect_url); setTimeout(() => w.close(), 3000); }
+      if (type === 'session_welcome') {
+        raidKeepalive = m.payload.session.keepalive_timeout_seconds || 10;
+        pl.invoke('raids:session', m.payload.session.id, moved); // moved: the subscription came along with it
+      } else if (type === 'session_reconnect') { w.onclose = null; eventSub = open(m.payload.session.reconnect_url, true); setTimeout(() => w.close(), 3000); }
       else if (type === 'notification' && m.payload.subscription.type === 'channel.raid') onRaid(m.payload.event);
     };
     // Some networks drop long-lived sockets after a few seconds: wait longer after each short-lived connection
     // (up to 5 minutes) instead of reconnecting, and making a new subscription, every few seconds.
     const opened = Date.now();
-    w.onclose = () => {
+    w.onclose = (e) => {
       if (eventSub !== w) return;
       eventSub = null;
-      raidRetry = Date.now() - opened > 60e3 ? 5000 : Math.min(raidRetry * 2, 5 * 60e3);
-      setTimeout(() => raidsSocket(prefs.raids), raidRetry);
+      pl.invoke('raids:session', null); // its subscription went with it
+      if (e && e.code === 4003) raidRetry = 5000; // closed for being unused: nothing wrong with the network
+      else raidRetry = Date.now() - opened > 60e3 ? 5000 : Math.min(raidRetry * 2, 5 * 60e3);
+      clearTimeout(raidRetryTimer);
+      raidRetryTimer = setTimeout(() => raidsSocket(raidsWanted()), raidRetry);
     };
     return w;
   };
-  eventSub = open('wss://eventsub.wss.twitch.tv/ws');
+  eventSub = open('wss://eventsub.wss.twitch.tv/ws', false);
 }
+// No keepalive for a while (after sleep, or a network change): the socket is dead even if it looks open.
+setInterval(() => {
+  if (!eventSub || eventSub.readyState !== 1 || Date.now() - raidHeard < (raidKeepalive + 10) * 1000) return;
+  const w = eventSub;
+  eventSub = null;
+  w.onclose = null; w.onmessage = null;
+  try { w.close(); } catch { /* already gone */ }
+  pl.invoke('raids:session', null);
+  raidsSocket(raidsWanted());
+}, 5000);
 async function onRaid(ev) {
   if (!current || current.kind !== 'live' || ev.from_broadcaster_user_login !== current.login) return;
   const meta = await pl.invoke('raids:target', ev.to_broadcaster_user_login);
@@ -400,7 +449,11 @@ async function onRaid(ev) {
   $('raid').hidden = false;
   void fill.offsetWidth;
   fill.style.transition = 'width 8s linear'; fill.style.width = '100%';
-  const go = () => { clearTimeout(raidTimer); $('raid').hidden = true; pl.invoke('player:play', meta); };
+  const from = current.login;
+  const go = () => {
+    clearTimeout(raidTimer); $('raid').hidden = true;
+    if (current && current.kind === 'live' && current.login === from) pl.invoke('player:play', meta); // not if you moved on
+  };
   $('raid-go').onclick = go;
   $('raid-stay').onclick = () => { clearTimeout(raidTimer); $('raid').hidden = true; };
   clearTimeout(raidTimer);
@@ -460,6 +513,11 @@ function tiles() {
 }
 function layoutGrid() {
   stage.querySelectorAll('.tile-hit').forEach((el) => el.remove());
+  if (grid) {
+    // Only 4 fit: older streams that dropped off the grid stop downloading (kept channels stay, as always).
+    const shown = new Set(tiles());
+    for (const v of [...views.values()]) if (!shown.has(v) && !kept.has(v.key)) drop(v);
+  }
   for (const v of views.values()) { v.tile = false; v.wv.style.cssText = ''; v.wv.classList.remove('tile', 'tile-on'); }
   if (!grid) return;
   const list = tiles();
@@ -595,6 +653,9 @@ function ptoast(msg) {
   toastTimer = setTimeout(() => { t.hidden = true; }, 4000);
 }
 pl.on('player:load', ({ meta }) => {
+  raidsSocket(raidsWanted());
+  clearTimeout(raidTimer); $('raid').hidden = true; // a raid banner was about the stream you just left
+  if (sleepEnd) { sleepEnd = false; ptoast('Sleep timer off: it was set for the end of the last video'); }
   $('b-start').hidden = meta.kind !== 'live';
   $('b-chapters').hidden = true; chapterList = []; $('chapters-menu').hidden = true;
   renderSleep();

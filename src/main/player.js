@@ -398,7 +398,8 @@ async function sample() {
   // recording) is the VOD itself.
   if (!r || !r.d || !isFinite(r.d) || r.d < cur.dur - Math.max(60, cur.dur * 0.05) || r.t < 5) return;
   onProgress(cur.id, vods.record(cur.id, r.t, r.d));
-  if (r.d - r.t < 30) continueOn(cur, r.t, r.d);
+  // The sleep timer's fade takes 20 s: start it late enough that the end of the video is still heard.
+  if (r.d - r.t < (sleepAtEnd ? 22 : 30)) continueOn(cur, r.t, r.d);
 }
 
 // Near the end of a VOD, keep going instead of stopping:
@@ -490,7 +491,7 @@ function saveVolume(login, volume) {
 }
 
 let sleepAtEnd = false;  // sleep timer set to "end of this video": stop instead of carrying on
-function setSleepAtEnd(on) { sleepAtEnd = !!on; return sleepAtEnd; }
+function setSleepAtEnd(on) { sleepAtEnd = !!on && !!current && current.kind === 'vod'; return sleepAtEnd; }
 
 // The next (or previous) live channel in the board's order, from whatever is playing.
 function step(dir) {
@@ -621,8 +622,9 @@ function create() {
     prefs.backgroundThrottling = false; // kept streams play on while the player window is hidden
     if (!/^https:\/\/player\.twitch\.tv\//.test(params.src || 'https://player.twitch.tv/')) e.preventDefault();
   });
+  // Not `guest = wc` here: kept channels attach out of sight too, and the page reports the one on screen (setActive).
   player.webContents.on('did-attach-webview', (_e, wc) => {
-    guest = wc;
+    wc.on('render-process-gone', (_ev, d) => log.warn('player', `a stream's page went away (${d.reason}); the player reloads it`));
     wc.on('dom-ready', () => { cleanKeys.delete(wc); applyClean(wc); }); // inserted CSS goes with the page
     wc.once('destroyed', () => cleanKeys.delete(wc));
     wc.setAudioMuted(true); // every stream starts silent; the page unmutes the one on screen
@@ -640,6 +642,14 @@ function create() {
     wc.on('console-message', ({ message }) => { if (message.startsWith('[tdkey] ')) guestKey(message.slice(8)); });
   });
   player.webContents.on('console-message', ({ level, message }) => { if (level === 'warning' || level === 'error') log.error('player', message); });
+  // The player page itself crashed: start it again with whatever was on screen (a VOD resumes from its last reading).
+  player.webContents.on('render-process-gone', (_e, d) => {
+    log.error('player', `player page went away (${d.reason}): reopening`);
+    const again = current;
+    const win = player;
+    win.once('closed', () => { if (again && !config.get().settings.paused) play(again.kind === 'vod' ? { ...again, at: undefined, restart: false } : again); });
+    setImmediate(() => { if (!win.isDestroyed()) win.destroy(); });
+  });
 
   // Width is the user's to change (drag an edge); height always follows 16:9 (PiP: the OS keeps the ratio).
   player.on('resized', () => {
@@ -783,6 +793,7 @@ async function play(meta) {
   if (meta.kind === 'vod') { const p = vods.touch(meta.id, meta.dur, meta); if (p) onProgress(meta.id, p); }
   liveSince = meta.kind === 'live' ? Date.now() : 0;
   continuing = null;
+  sleepAtEnd = false; // "end of this video" was about the one before (the page resets its menu on player:load)
   onNowPlaying(playing.key);
 
   if (!player.isVisible()) {

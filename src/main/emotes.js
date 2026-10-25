@@ -4,7 +4,8 @@
 const log = require('./log');
 
 const TTL = 30 * 60e3;
-const cache = new Map(); // key -> { at, map }
+const RETRY = 60e3;      // every source failed (offline for a moment): try again soon rather than in half an hour
+const cache = new Map(); // key -> { at, ttl, map }
 
 async function getJson(url) {
   const ctrl = new AbortController();
@@ -32,10 +33,10 @@ const ffz = (sets) => {
 
 async function load(key, fn) {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL) return hit.map;
-  const map = await fn().catch((e) => { log.warn('emotes', `${key}: ${e.message}`); return {}; });
-  cache.set(key, { at: Date.now(), map });
-  return map;
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.map;
+  const map = await fn().catch((e) => { log.warn('emotes', `${key}: ${e.message}`); return null; });
+  cache.set(key, { at: Date.now(), ttl: map ? TTL : RETRY, map: map || {} });
+  return map || {};
 }
 
 const globals = () => load('global', async () => {
@@ -44,6 +45,7 @@ const globals = () => load('global', async () => {
     getJson('https://api.betterttv.net/3/cached/emotes/global'),
     getJson('https://api.frankerfacez.com/v1/set/global'),
   ]);
+  if (!s && !b && !f) return null;
   return { ...ffz(f && f.sets), ...bttv(b), ...seventv(s) };
 });
 
@@ -53,6 +55,7 @@ const channel = (id) => load(`ch:${id}`, async () => {
     getJson(`https://api.betterttv.net/3/cached/users/twitch/${id}`),
     getJson(`https://api.frankerfacez.com/v1/room/id/${id}`),
   ]);
+  if (!s && !b && !f) return null;
   return { ...ffz(f && f.sets), ...bttv(b && [...(b.channelEmotes || []), ...(b.sharedEmotes || [])]), ...seventv(s && s.emote_set) };
 });
 

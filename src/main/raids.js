@@ -51,8 +51,10 @@ function watch(login) {
   resubscribe();
 }
 
-function setSession(id) {
+// moved: the socket was handed over to a new one (session_reconnect). The subscription carries over with it.
+function setSession(id, moved) {
   sessionId = id || null;
+  if (moved && sessionId) return;
   subId = null; // subscriptions die with their session
   resubscribe();
 }

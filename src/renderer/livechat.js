@@ -42,13 +42,30 @@ function connect() {
     joined = null;
     if (channel) join(channel.login);
   };
-  ws.onmessage = (e) => String(e.data).split('\r\n').filter(Boolean).forEach(handle);
+  ws.onmessage = (e) => { heardAt = Date.now(); String(e.data).split('\r\n').filter(Boolean).forEach(handle); };
   ws.onclose = () => {
     joined = null;
     setState('reconnecting');
     setTimeout(connect, Math.min(30000, 1000 * 2 ** retry++));
   };
+  heardAt = Date.now();
 }
+
+// After sleep or a network change a socket can stay "open" with nothing coming through. A quiet minute gets a PING
+// of our own; no answer within 20 s and the connection is dropped and made again.
+let heardAt = Date.now();
+setInterval(() => {
+  if (!ws || ws.readyState !== 1) return;
+  const quiet = Date.now() - heardAt;
+  if (quiet > 80e3) {
+    const dead = ws;
+    dead.onclose = null; dead.onmessage = null;
+    try { dead.close(); } catch { /* already gone */ }
+    ws = null; joined = null;
+    setState('reconnecting');
+    connect();
+  } else if (quiet > 60e3) ws.send('PING :tmi.twitch.tv');
+}, 10e3);
 
 function join(login) {
   if (!ws || ws.readyState !== 1) return;
@@ -134,7 +151,7 @@ function badgeHtml(badges) {
 
 // 7TV / BTTV / FFZ emotes are plain words in the message; swap the ones we know for their images.
 function wordsHtml(text) {
-  return text.split(/(\s+)/).map((w) => (extra[w] ? `<img class="emote" src="${esc(extra[w])}" alt="${esc(w)}" title="${esc(w)}">` : esc(w))).join('');
+  return text.split(/(\s+)/).map((w) => (Object.hasOwn(extra, w) ? `<img class="emote" src="${esc(extra[w])}" alt="${esc(w)}" title="${esc(w)}">` : esc(w))).join('');
 }
 
 // Twitch emote positions count Unicode code points, not UTF-16 units.
@@ -299,6 +316,15 @@ setInterval(() => {
 }, 1000);
 
 // ---------- wiring ----------
+// None came back (offline for a moment): ask again a little later, a few times.
+function loadEmotes(c, tries) {
+  lc.invoke('livechat:emotes', c.id).then((map) => {
+    if (!channel || channel.login !== c.login) return;
+    extra = map || {};
+    if (!Object.keys(extra).length && tries < 4) setTimeout(() => loadEmotes(c, tries + 1), 65e3);
+  }).catch(() => {});
+}
+
 lc.on('livechat:channel', (c) => {
   const same = channel && channel.login === c.login;
   channel = c;
@@ -320,7 +346,7 @@ lc.on('livechat:channel', (c) => {
   document.body.classList.add('switch');
   addDivider(`Joined ${c.display}'s chat`);
   extra = {};
-  lc.invoke('livechat:emotes', c.id).then((map) => { if (channel && channel.login === c.login) extra = map || {}; }).catch(() => {});
+  loadEmotes(c, 0);
   renderRecap();
   myTags = {};
   if (ws && ws.readyState === 1) join(c.login); else authReady.then(connect);

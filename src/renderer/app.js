@@ -824,10 +824,10 @@ function wireEvents() {
     if (['live', 'continue', 'vods', 'schedule', 'channels'].includes(v)) setTab(v);
   });
   tw.on('twitch:nowPlaying', (key) => {
+    setTimeout(loadContinue, 1500); // what was just left may now be in Continue (even when the row already shows the new one)
     if (key === S.nowPlaying) return;
     S.nowPlaying = key;
     render();
-    setTimeout(loadContinue, 1500); // what was just left may now be in Continue
   });
   tw.on('twitch:progress', ({ id, progress }) => {
     const v = S.vods && S.vods.list.find((x) => x.id === id);
@@ -840,6 +840,10 @@ function wireEvents() {
     S.status = st;
     $('#btn-refresh').classList.toggle('spinning', !!st.polling);
     if (sig === S.sig) return; // nothing new to draw
+    // Typing in the Channels tab (adding, filtering): a redraw would wipe the box, so wait for the next poll.
+    const box = document.activeElement;
+    const typing = S.tab === 'channels' && ((box && (box.id === 'chan-add' || box.id === 'chan-filter')) || ($('#chan-add') && $('#chan-add').value));
+    if (typing) { renderCounts(); return; }
     S.sig = sig;
     if (S.settingsOpen || S.tab === 'vods') renderCounts(); else render();
   });

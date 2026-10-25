@@ -329,9 +329,10 @@ ipcMain.handle('settings:update', (_e, patch) => {
   const before = config.get().settings.pollSeconds;
   if (typeof patch.openrouterKey === 'string') patch.openrouterKey = patch.openrouterKey.trim();
   if (typeof patch.openrouterModel === 'string') patch.openrouterModel = patch.openrouterModel.trim();
-  config.update((c) => { c.settings = { ...c.settings, ...patch }; });
+  const { paused: off, ...rest } = patch; // setPaused saves it itself, after comparing with what it was
+  config.update((c) => { c.settings = { ...c.settings, ...rest }; });
   if ('alwaysOnTop' in patch) setAlwaysOnTop(patch.alwaysOnTop);
-  if ('paused' in patch) setPaused(patch.paused);
+  if ('paused' in patch) setPaused(off);
   if (config.get().settings.pollSeconds !== before) poller.start();
   if ('chatRecap' in patch || 'openrouterKey' in patch) player.syncChat(); // shows or hides the recap button
   if ('cleanPlayer' in patch) player.setCleanPlayer();
@@ -343,7 +344,7 @@ ipcMain.handle('poll:now', async () => { if (!paused() && signedIn()) await poll
 
 ipcMain.handle('channels:add', (_e, text) => addChannels(text));
 ipcMain.handle('channels:remove', (_e, login) => removeChannel(String(login || '')));
-ipcMain.handle('schedule:get', async (_e, { force } = {}) => (paused() ? { ...(await schedule.get()), paused: true } : schedule.get({ force })));
+ipcMain.handle('schedule:get', async (_e, { force } = {}) => (paused() ? { ...(await schedule.get({ cached: true })), paused: true } : schedule.get({ force })));
 ipcMain.handle('schedule:remind', (_e, { id, on }) => schedule.setRemind(String(id), !!on));
 ipcMain.handle('stats:get', () => (store.get().stats || { days: {} }));
 ipcMain.handle('ntfy:test', () => { alert('Twitch Desktop', 'Phone alerts are working', { tags: 'white_check_mark' }); return true; });
@@ -382,7 +383,7 @@ ipcMain.handle('twitch:forget', (_e, what) => { vods.forget(what || {}); return 
 ipcMain.handle('twitch:keep', (_e, { login }) => ({ ok: true, ...player.toggleKeep(String(login || '')) }));
 
 ipcMain.handle('player:play', (_e, meta) => (paused() ? PAUSED : player.play(meta || {}).then((ok) => ({ ok }), (e) => ({ ok: false, error: e.message }))));
-ipcMain.handle('raids:session', (_e, id) => { raids.setSession(id); return true; });
+ipcMain.handle('raids:session', (_e, id, moved) => { raids.setSession(id, moved); return true; });
 ipcMain.handle('raids:target', async (_e, login) => { try { return await raids.target(String(login || '')); } catch (e) { return null; } });
 ipcMain.handle('livechat:emotes', async (_e, id) => { try { return await emotes.forChannel(id); } catch { return {}; } });
 ipcMain.handle('player:audio', (_e, on) => player.setAudio(on));
@@ -463,5 +464,9 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => { quitting = true; store.save(true); });
+// Asked to stop by the system (logging out, a `kill`): quit properly instead of hiding to the tray.
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { quitting = true; app.quit(); });
+// Chromium's helper processes (GPU, network, a page) dying is worth a line when the app misbehaves afterwards.
+app.on('child-process-gone', (_e, d) => { if (d.reason !== 'clean-exit') log.warn('app', `${d.type} process went away: ${d.reason}${d.exitCode ? ` (${d.exitCode})` : ''}`); });
 app.on('will-quit', () => require('electron').globalShortcut.unregisterAll());
 app.on('window-all-closed', () => { /* keep running in tray */ });

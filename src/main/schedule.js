@@ -66,10 +66,11 @@ async function refresh() {
   return running;
 }
 
-async function get({ force = false } = {}) {
+// cached: what is saved, without going to Twitch even when it is old (the app is turned off).
+async function get({ force = false, cached = false } = {}) {
   const d = data();
   if (!auth.user()) return { at: d.at, items: d.items, remind: d.remind || [], needsSignIn: true, error: auth.SIGN_IN_FIRST };
-  if (force || Date.now() - d.at > EVERY) await refresh().catch((e) => { if (e.code !== 'SIGNED_OUT') log.warn('schedule', e.message); });
+  if (!cached && (force || Date.now() - d.at > EVERY)) await refresh().catch((e) => { if (e.code !== 'SIGNED_OUT') log.warn('schedule', e.message); });
   return { at: d.at, items: d.items, remind: d.remind || [] };
 }
 
