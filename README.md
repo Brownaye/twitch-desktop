@@ -171,8 +171,8 @@ Issues and PRs are welcome. For anything big, open an issue first.
 
 ## Releasing
 
-1. Bump the version (`npm version 1.1.1 --no-git-tag-version`), commit and push.
-2. `git tag v1.1.1 && git push origin v1.1.1`
+1. Bump the version (`npm version 1.1.2 --no-git-tag-version`), commit and push.
+2. `git tag v1.1.2 && git push origin v1.1.2`
 3. The Release workflow builds Windows and Linux and uploads everything to a draft release.
 4. Edit the notes and publish it. Leave the `latest*.yml` and `.blockmap` files attached, auto-update needs them.
 
